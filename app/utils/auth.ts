@@ -1,0 +1,7 @@
+import type { auth } from "~~/server/utils/auth";
+import { adminClient, inferAdditionalFields, usernameClient } from "better-auth/client/plugins";
+import { createAuthClient } from "better-auth/vue";
+
+export const authClient = createAuthClient({
+  plugins: [usernameClient(), adminClient(), inferAdditionalFields<typeof auth>()],
+});

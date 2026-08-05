@@ -1,8 +1,10 @@
 import { defineRelations } from "drizzle-orm";
 import * as authSchema from "./schema/auth";
+import * as kelompokSchema from "./schema/kelompok";
 
 export const relations = defineRelations({
   ...authSchema,
+  ...kelompokSchema,
 }, r => ({
   user: {
     sessions: r.many.session({

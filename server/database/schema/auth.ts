@@ -8,17 +8,22 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createdUpdated } from "./common";
+import { kelompok } from "./kelompok";
 
 export const user = snakeCase.table("user", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
   name: text().notNull(),
-  noTelepon: text().notNull(),
+  username: text().unique(),
+  displayUsername: text(),
   email: text().notNull().unique(),
   emailVerified: boolean().notNull(),
   image: text(),
   role: text(),
   banned: boolean().default(false),
   banReason: text(),
+  idKelompok: integer()
+    .notNull()
+    .references(() => kelompok.id),
   banExpires: timestamp({ withTimezone: true }),
   ...createdUpdated,
 }, table => [uniqueIndex("email_idx").on(table.email)]);
@@ -41,7 +46,7 @@ export const session = snakeCase.table("session", {
 
 export const account = snakeCase.table("account", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
-  providerAccountId: text().notNull(),
+  accountId: text().notNull(),
   providerId: text().notNull(),
   userId: integer()
     .notNull()
