@@ -3,6 +3,7 @@ import type { DropdownMenuItem } from "@nuxt/ui";
 import { useAuthSession } from "~/composables/auth";
 import { useToastError } from "~/composables/toast";
 import { authClient } from "~/utils/auth";
+import DashboardNavigationMenu from "./DashboardNavigationMenu.vue";
 
 const config = useRuntimeConfig();
 const { session } = await useAuthSession();
@@ -52,7 +53,7 @@ const items = computed<DropdownMenuItem[][]>(() => [
 </script>
 
 <template>
-  <UDashboardSidebar collapsible resizable :default-size="35" :ui="{ footer: 'border-t border-default', root: 'min-w-0 transition-all duration-300 overflow-hidden' }">
+  <UDashboardSidebar collapsible resizable :default-size="35" class="bg-muted" :ui="{ footer: 'border-t border-default', root: 'min-w-0 transition-all duration-300 overflow-hidden' }">
     <template #header>
       <div class="flex h-14 w-full items-center gap-2 overflow-hidden px-3 py-2 text-left text-sm">
         <NuxtImg src="logo.webp" alt="Berkah Amanah" class="size-8" />
@@ -64,6 +65,8 @@ const items = computed<DropdownMenuItem[][]>(() => [
       </div>
     </template>
 
+    <DashboardNavigationMenu />
+
     <template #footer>
       <UDropdownMenu :items="items" :ui="{ content: 'w-(--reka-dropdown-menu-trigger-width)' }">
         <UButton
@@ -71,18 +74,12 @@ const items = computed<DropdownMenuItem[][]>(() => [
             src: session?.user.image ? `${config.public.imageUrl}/${session.user.image}` : undefined,
             alt: session?.user.name ?? 'User',
             loading: 'lazy',
-            size: 'lg',
           }"
+          :label="session?.user.name ?? 'User'"
           color="neutral"
           variant="ghost"
           class="w-full"
-          trailing-icon="i-tabler-dots-vertical"
-        >
-          <div class="grid flex-1 text-left text-sm leading-tight">
-            <span class="truncate font-medium">{{ session?.user.name ?? 'User' }}</span>
-            <span class="truncate text-xs">{{ session?.user.username ?? 'Username' }}</span>
-          </div>
-        </UButton>
+        />
       </UDropdownMenu>
     </template>
   </UDashboardSidebar>
