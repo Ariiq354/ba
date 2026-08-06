@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from "@nuxt/ui";
 import { useAuthSession } from "~/composables/auth";
 import { useToastError } from "~/composables/toast";
 import { authClient } from "~/utils/auth";
@@ -9,6 +10,7 @@ const { session } = await useAuthSession();
 async function signOut() {
   try {
     await authClient.signOut();
+
     await navigateTo("/", { external: true });
   }
   catch {

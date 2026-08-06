@@ -59,8 +59,8 @@ const matched = computed(
   <UError
     :error="{
       statusCode: props.error?.status,
-      statusMessage: matched.name,
-      message: matched.message,
+      statusMessage: matched?.name,
+      message: matched?.message,
     }"
     redirect="/"
   />
