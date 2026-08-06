@@ -8,7 +8,7 @@ export function useToastSuccess(
   toast.add({
     title,
     description,
-    icon: "i-lucide-circle-check",
+    icon: "i-tabler-circle-check",
     color: "success",
     duration: 3000,
   });
@@ -19,7 +19,7 @@ export function useToastError(title: string, description?: string) {
   toast.add({
     title,
     description,
-    icon: "i-lucide-circle-x",
+    icon: "i-tabler-circle-x",
     color: "error",
     duration: 3000,
   });
