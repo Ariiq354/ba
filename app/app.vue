@@ -1,7 +1,7 @@
 <template>
   <div>
     <NuxtRouteAnnouncer />
-    <NuxtLoadingIndicator :height="5" />
+    <NuxtLoadingIndicator color="blue" :height="5" />
     <UApp>
       <NuxtLayout>
         <NuxtPage />

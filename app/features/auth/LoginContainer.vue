@@ -25,11 +25,9 @@ async function onSubmit(event: FormSubmitEvent<LoginSchema>) {
     onError: (err) => {
       isLoading.value = false;
 
-      console.log("Hai", err.error);
-
       switch (err.error.code) {
         case "BANNED_USER":
-          useToastError("Akun ditangguhkan", err.error.message);
+          useToastError("Akun belum aktif", "Akun Anda belum aktif. Silakan hubungi administrator.");
           break;
         case "INVALID_USERNAME_OR_PASSWORD":
           useToastError("Login Gagal", "Username atau password yang Anda masukkan salah.");
@@ -108,7 +106,7 @@ async function onSubmit(event: FormSubmitEvent<LoginSchema>) {
 
     <div class="bg-muted relative hidden md:block">
       <NuxtImg
-        src="vertical.png"
+        src="vertical.webp"
         alt="Image Vertical"
         class="h-full w-full object-cover"
       />

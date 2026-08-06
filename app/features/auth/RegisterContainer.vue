@@ -123,7 +123,7 @@ async function onSubmit(event: FormSubmitEvent<RegisterSchema>) {
 
     <div class="bg-muted relative hidden md:block">
       <NuxtImg
-        src="vertical.png"
+        src="vertical.webp"
         alt="Image Vertical"
         class="h-full w-full object-cover"
       />

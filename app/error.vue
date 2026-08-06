@@ -1,18 +1,23 @@
 <script setup lang="ts">
 import type { NuxtError } from "#app";
 
-interface errorMessage {
+interface ErrorMessage {
   [id: string]: {
     name: string;
     message: string;
   };
 }
 
-defineProps<{
+const props = defineProps<{
   error: NuxtError;
 }>();
 
-const statusMessage: errorMessage = {
+const statusMessage: ErrorMessage = {
+  400: {
+    name: "Permintaan tidak valid",
+    message:
+        "Oops! Terjadi kesalahan pada permintaan ini. Silakan periksa kembali lalu coba lagi.",
+  },
   404: {
     name: "Halaman tidak ditemukan",
     message:
@@ -33,15 +38,29 @@ const statusMessage: errorMessage = {
     message:
         "Uh-oh! Ada yang salah di sistem kami. Kami sedang bekerja keras untuk memperbaikinya. Silakan coba lagi nanti.",
   },
+  503: {
+    name: "Layanan tidak tersedia",
+    message:
+        "Mohon maaf, layanan sedang sibuk atau menjalani pemeliharaan. Silakan coba lagi beberapa saat lagi.",
+  },
+  default: {
+    name: "Terjadi kesalahan",
+    message:
+        "Oops! Ada yang tidak beres. Silakan coba lagi nanti.",
+  },
 };
+
+const matched = computed(
+  () => statusMessage[String(props.error?.status)] ?? statusMessage.default,
+);
 </script>
 
 <template>
   <UError
     :error="{
-      statusCode: error?.status,
-      statusMessage: statusMessage[String(error?.status)]?.name,
-      message: error?.message,
+      statusCode: props.error?.status,
+      statusMessage: matched.name,
+      message: matched.message,
     }"
     redirect="/"
   />
