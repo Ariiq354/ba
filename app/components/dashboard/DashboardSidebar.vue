@@ -56,7 +56,7 @@ const items = computed<DropdownMenuItem[][]>(() => [
 </script>
 
 <template>
-  <UDashboardSidebar collapsible resizable :default-size="35" class="bg-muted" :ui="{ footer: 'border-t border-default', root: 'min-w-0 transition-all duration-300 overflow-hidden' }">
+  <UDashboardSidebar collapsible resizable class="bg-muted" :ui="{ footer: 'border-t border-default', root: 'min-w-0 transition-all duration-300 overflow-hidden' }">
     <template #header>
       <div class="flex h-14 w-full items-center gap-2 overflow-hidden px-3 py-2 text-left text-sm">
         <NuxtImg src="logo.webp" alt="Berkah Amanah" class="size-8" />

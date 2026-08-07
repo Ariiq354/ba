@@ -3,20 +3,20 @@ defineProps<{
   disabled?: boolean;
 }>();
 
-const { data, status, refresh } = useLazyFetch("/api/v1/kelompok", {
+const nuxtApp = useNuxtApp();
+const { data, status } = useLazyFetch("/api/v1/kelompok", {
   key: "kelompok-options",
-  cache: "default",
   transform: data =>
     data.map(item => ({
       label: `${item.kodeKelompok} - ${item.namaKelompok}`,
       value: item.id,
     })),
+  getCachedData: (key) => {
+    return nuxtApp.payload.data[key] || nuxtApp.static.data[key];
+  },
 });
 
 const selectedKelompok = defineModel<number>();
-
-const isLoading = computed(() => status.value === "pending");
-const isError = computed(() => status.value === "error");
 </script>
 
 <template>
@@ -25,10 +25,9 @@ const isError = computed(() => status.value === "error");
     :items="data ?? []"
     label-key="label"
     value-key="value"
-    :disabled="disabled || isLoading"
-    :loading="isLoading"
+    :disabled="disabled || status === 'pending'"
+    :loading="status === 'pending'"
     :search-input="false"
-    :placeholder="isError ? 'Gagal memuat. Klik untuk coba lagi' : 'Pilih Kelompok'"
-    @click="isError && refresh()"
+    placeholder="Pilih Kelompok"
   />
 </template>

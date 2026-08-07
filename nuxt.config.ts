@@ -18,6 +18,10 @@ export default defineNuxtConfig({
     },
   },
 
+  ui: {
+    colorMode: false,
+  },
+
   imports: {
     scan: false,
   },
@@ -35,7 +39,7 @@ export default defineNuxtConfig({
           "'self'",
           "data:",
           "blob:",
-          "https://assets.kompak98.com",
+          "https://pub-d903c762cae0445d8dce45d854b69f88.r2.dev",
         ],
       },
     },
@@ -43,7 +47,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      imageUrl: "https://assets.kompak98.com",
+      imageUrl: "https://pub-d903c762cae0445d8dce45d854b69f88.r2.dev",
     },
   },
 

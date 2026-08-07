@@ -1,10 +1,12 @@
 import { defineRelations } from "drizzle-orm";
 import * as authSchema from "./schema/auth";
 import * as kelompokSchema from "./schema/kelompok";
+import * as wilayahSchema from "./schema/wilayah";
 
 export const relations = defineRelations({
   ...authSchema,
   ...kelompokSchema,
+  ...wilayahSchema,
 }, r => ({
   user: {
     sessions: r.many.session({
@@ -26,6 +28,38 @@ export const relations = defineRelations({
     user: r.one.user({
       from: r.account.userId,
       to: r.user.id,
+    }),
+  },
+  provinsi: {
+    kota: r.many.kota({
+      from: r.provinsi.id,
+      to: r.kota.idProvinsi,
+    }),
+  },
+  kota: {
+    provinsi: r.one.provinsi({
+      from: r.kota.idProvinsi,
+      to: r.provinsi.id,
+    }),
+    kecamatan: r.many.kecamatan({
+      from: r.kota.id,
+      to: r.kecamatan.idKota,
+    }),
+  },
+  kecamatan: {
+    kota: r.one.kota({
+      from: r.kecamatan.idKota,
+      to: r.kota.id,
+    }),
+    kelurahan: r.many.kelurahan({
+      from: r.kecamatan.id,
+      to: r.kelurahan.idKecamatan,
+    }),
+  },
+  kelurahan: {
+    kecamatan: r.one.kecamatan({
+      from: r.kelurahan.idKecamatan,
+      to: r.kecamatan.id,
     }),
   },
 }));
