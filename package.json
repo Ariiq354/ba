@@ -14,7 +14,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1104.0",
+    "@aws-sdk/client-s3": "^3.1105.0",
     "@iconify-json/tabler": "^1.2.38",
     "@nuxt/image": "2.1.0",
     "@nuxt/ui": "4.10.0",
@@ -30,7 +30,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^9.2.0",
+    "@antfu/eslint-config": "^9.3.0",
     "@nuxt/eslint": "^1.17.0",
     "@types/node": "^26.1.2",
     "drizzle-kit": "^1.0.0-rc.4-ca0f029",

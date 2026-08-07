@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from "@nuxt/ui";
 import { useAuthSession } from "~/composables/auth";
+import { openModal } from "~/composables/modal";
 import { useToastError } from "~/composables/toast";
 import { authClient } from "~/utils/auth";
+import ModalChangePassword from "../modal/ModalChangePassword.vue";
 import DashboardNavigationMenu from "./DashboardNavigationMenu.vue";
 
 const config = useRuntimeConfig();
@@ -39,6 +41,7 @@ const items = computed<DropdownMenuItem[][]>(() => [
     {
       label: "Ubah Password",
       icon: "i-tabler-lock-password",
+      onSelect: () => openModal(ModalChangePassword),
     },
   ],
   [
