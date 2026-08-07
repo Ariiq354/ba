@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1105.0",
+    "@aws-sdk/s3-request-presigner": "^3.1105.0",
     "@iconify-json/tabler": "^1.2.38",
     "@nuxt/image": "2.1.0",
     "@nuxt/ui": "4.10.0",

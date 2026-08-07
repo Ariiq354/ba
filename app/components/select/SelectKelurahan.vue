@@ -38,6 +38,6 @@ watch(
     value-key="id"
     :disabled="disabled || !idKecamatan || status === 'pending'"
     :loading="status === 'pending'"
-    placeholder="Pilih Kelurahan"
+    placeholder="Pilih Desa / Kelurahan"
   />
 </template>

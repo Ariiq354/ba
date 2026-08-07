@@ -1,10 +1,12 @@
 import { defineRelations } from "drizzle-orm";
 import * as authSchema from "./schema/auth";
+import * as filesSchema from "./schema/files";
 import * as kelompokSchema from "./schema/kelompok";
 import * as wilayahSchema from "./schema/wilayah";
 
 export const relations = defineRelations({
   ...authSchema,
+  ...filesSchema,
   ...kelompokSchema,
   ...wilayahSchema,
 }, r => ({

@@ -52,7 +52,6 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 
 <template>
   <UModal
-    :ui="{ body: 'sm:max-w-lg' }"
     title="Ubah Password"
     description="Masukkan password lama dan password baru Anda."
   >

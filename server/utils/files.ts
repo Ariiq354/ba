@@ -1,4 +1,3 @@
-import type { Buffer } from "node:buffer";
 import path from "node:path";
 import {
   DeleteObjectCommand,
@@ -6,6 +5,7 @@ import {
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "~~/shared/env";
 
 const DIR_REGEX = /\/+$/;
@@ -19,11 +19,11 @@ const S3 = new S3Client({
   },
 });
 
-export async function uploadFile(
+export async function getUploadUrl(
   dir: string,
   filename: string,
-  data: Buffer,
-  contentType: string,
+  filesize: number,
+  fileType: string,
 ) {
   const ext = filename.includes(".")
     ? filename.substring(filename.lastIndexOf("."))
@@ -32,19 +32,17 @@ export async function uploadFile(
   const storedName = `${crypto.randomUUID()}${ext}`;
   const key = `${dir.replace(DIR_REGEX, "")}/${storedName}`;
 
-  await S3.send(
+  const getUrl = await getSignedUrl(
+    S3,
     new PutObjectCommand({
       Bucket: env.CLOUDFLARE_BUCKET,
       Key: key,
-      Body: data,
-      ContentType: contentType,
+      ContentType: fileType,
+      ContentLength: filesize,
     }),
   );
 
-  return {
-    key,
-    storedName,
-  };
+  return { uploadUrl: getUrl, key };
 }
 
 export async function deleteFile(
