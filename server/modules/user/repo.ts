@@ -1,10 +1,12 @@
-import type { CreateUserProfileSchema } from "./model";
-import { eq } from "drizzle-orm";
-import { ResultAsync } from "neverthrow";
+import type { CreateUserProfileSchema, GetUsersQuerySchema } from "./model";
+import { and, count, desc, eq, ilike, isNull, or } from "drizzle-orm";
+import { errAsync, okAsync, ResultAsync } from "neverthrow";
 import { db } from "~~/server/database";
 import { user } from "~~/server/database/schema/auth";
 import { files } from "~~/server/database/schema/files";
+import { kelompok } from "~~/server/database/schema/kelompok";
 import { userProfile } from "~~/server/database/schema/users";
+import { generateNoAnggota } from "~~/server/utils/member";
 
 export const UserRepo = {
   updateUserProfile(
@@ -99,6 +101,135 @@ export const UserRepo = {
         .where(eq(user.id, userId))
         .limit(1)
         .then(rows => rows[0] ?? null),
+      cause => ({ code: "DATABASE_ERROR", cause } as const),
+    );
+  },
+
+  verifyUser(userId: number) {
+    return ResultAsync.fromPromise(
+      db.transaction(async (tx) => {
+        const targetUser = await tx
+          .select({
+            id: user.id,
+            banned: user.banned,
+            idKelompok: user.idKelompok,
+          })
+          .from(user)
+          .where(eq(user.id, userId))
+          .limit(1)
+          .then(rows => rows[0] ?? null);
+
+        if (!targetUser) {
+          return { status: "NOT_FOUND" } as const;
+        }
+
+        if (!targetUser.banned) {
+          return { status: "ALREADY_VERIFIED" } as const;
+        }
+
+        const noAnggota = await generateNoAnggota(tx, targetUser.idKelompok);
+
+        await tx
+          .update(user)
+          .set({
+            banned: false,
+            banReason: null,
+            banExpires: null,
+          })
+          .where(eq(user.id, userId));
+
+        await tx
+          .insert(userProfile)
+          .values({
+            idUser: userId,
+            noAnggota,
+          })
+          .onConflictDoUpdate({
+            target: userProfile.idUser,
+            set: { noAnggota },
+          });
+
+        return { status: "SUCCESS", noAnggota } as const;
+      }),
+      cause => ({ code: "DATABASE_ERROR", cause } as const),
+    ).andThen((res) => {
+      if (res.status === "NOT_FOUND") {
+        return errAsync({
+          code: "USER_NOT_FOUND",
+          message: "User tidak ditemukan",
+        } as const);
+      }
+      if (res.status === "ALREADY_VERIFIED") {
+        return errAsync({
+          code: "ALREADY_VERIFIED",
+          message: "User sudah terverifikasi",
+        } as const);
+      }
+      return okAsync({ noAnggota: res.noAnggota });
+    });
+  },
+
+  getPaginatedUsers(query: GetUsersQuerySchema) {
+    const offset = (query.page - 1) * query.limit;
+    const conditions = [];
+
+    if (query.status === "pending") {
+      conditions.push(eq(user.banned, true));
+    }
+    else if (query.status === "verified") {
+      conditions.push(or(eq(user.banned, false), isNull(user.banned)));
+    }
+
+    if (query.search) {
+      const searchPattern = `%${query.search}%`;
+      conditions.push(
+        or(
+          ilike(user.name, searchPattern),
+          ilike(user.email, searchPattern),
+          ilike(userProfile.noAnggota, searchPattern),
+        ),
+      );
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    return ResultAsync.fromPromise(
+      Promise.all([
+        db
+          .select({
+            id: user.id,
+            name: user.name,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            banned: user.banned,
+            banReason: user.banReason,
+            idKelompok: user.idKelompok,
+            namaKelompok: kelompok.namaKelompok,
+            kodeKelompok: kelompok.kodeKelompok,
+            noAnggota: userProfile.noAnggota,
+            createdAt: user.createdAt,
+          })
+          .from(user)
+          .leftJoin(userProfile, eq(userProfile.idUser, user.id))
+          .leftJoin(kelompok, eq(kelompok.id, user.idKelompok))
+          .where(whereClause)
+          .orderBy(desc(user.createdAt), desc(user.id))
+          .limit(query.limit)
+          .offset(offset),
+        db
+          .select({ total: count() })
+          .from(user)
+          .leftJoin(userProfile, eq(userProfile.idUser, user.id))
+          .where(whereClause)
+          .then(rows => rows[0]?.total ?? 0),
+      ]).then(([items, total]) => ({
+        items,
+        total,
+        page: query.page,
+        limit: query.limit,
+        totalPages: Math.ceil(total / query.limit),
+      })),
       cause => ({ code: "DATABASE_ERROR", cause } as const),
     );
   },

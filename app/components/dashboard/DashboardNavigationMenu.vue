@@ -11,6 +11,7 @@ const items = ref<NavigationMenuItem[][]>([
   ],
   [
     { label: "Master Data", type: "label" },
+    { label: "Manajemen Anggota", to: "/dashboard/users", icon: "i-tabler-users" },
     { label: "Master Margin", to: "/dashboard/master-margin", icon: "i-tabler-percentage" },
     { label: "Master Saham", to: "/dashboard/master-saham", icon: "i-tabler-chart-candle" },
   ],

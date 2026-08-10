@@ -17,3 +17,18 @@ export const createUserProfileSchema = z.object({
 });
 
 export type CreateUserProfileSchema = z.infer<typeof createUserProfileSchema>;
+
+export const verifyUserSchema = z.object({
+  userId: z.number().int().positive(),
+});
+
+export type VerifyUserSchema = z.infer<typeof verifyUserSchema>;
+
+export const getUsersQuerySchema = z.object({
+  page: z.coerce.number().default(1),
+  limit: z.coerce.number().default(10),
+  search: z.string().optional(),
+  status: z.enum(["all", "pending", "verified"]).default("all"),
+});
+
+export type GetUsersQuerySchema = z.infer<typeof getUsersQuerySchema>;

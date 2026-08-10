@@ -28,3 +28,11 @@ This repository handles the core system for the member financial portal (Koperas
 
 - **Master Margin (Margin & Fee Tiering)**
   Configuration tiers for financing margin percentages and contract fees (`biayaAkad`), parametrized by nominal financing bounds (`minNominal`, `maxNominal`), yearly margin percentage (`persenMarginTahun`), and collateral status (`jaminan`: `ADA` | `TIDAK_ADA`).
+
+### Member Management & Lifecycle
+
+- **Verifikasi Akun (Member Account Verification)**
+  Validation process performed by administrators to approve pending registered accounts (which default to `banned: true` with `banReason: "Akun belum terverifikasi"`). Verification unbans the user (`banned: false`) and generates a unique Member Number (`noAnggota`).
+
+- **Nomor Anggota (`noAnggota`)**
+  Unique member identification string assigned upon account verification. Formatted as `{kodeKelompok}-{MMYY}-{nomor}` (e.g. `KD-0126-0001`), where `nomor` is a 4-digit zero-padded sequence that resets monthly per `kelompok`.

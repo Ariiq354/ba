@@ -1,5 +1,6 @@
 import type { TableColumn } from "@nuxt/ui";
 import { z } from "zod";
+import { UBadge } from "#components";
 import { formatRupiah } from "~/utils/formatter";
 
 export interface MarginItem {
@@ -25,8 +26,6 @@ export const marginSchema = z.object({
 });
 
 export type MarginFormSchema = z.infer<typeof marginSchema>;
-
-const UBadge = resolveComponent("UBadge");
 
 export const marginColumns: TableColumn<MarginItem>[] = [
   {

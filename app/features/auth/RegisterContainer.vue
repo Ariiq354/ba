@@ -3,7 +3,7 @@ import type { FormSubmitEvent } from "@nuxt/ui";
 import type { RegisterSchema } from "./model";
 import InputPassword from "~/components/input/InputPassword.vue";
 import SelectKelompok from "~/components/select/SelectKelompok.vue";
-import { useToastError } from "~/composables/toast";
+import { useToastError, useToastSuccess } from "~/composables/toast";
 import { authClient } from "~/utils/auth";
 import { initRegisterFormdata, registerSchema } from "./model";
 
@@ -23,7 +23,8 @@ async function onSubmit(event: FormSubmitEvent<RegisterSchema>) {
     },
     onSuccess: async () => {
       isLoading.value = false;
-      await navigateTo("/dashboard", { external: true });
+      useToastSuccess("Registrasi Berhasil", "Akun Anda telah berhasil dibuat. Silakan login untuk melanjutkan.");
+      await navigateTo("/");
     },
     onError: (err) => {
       isLoading.value = false;

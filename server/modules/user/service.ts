@@ -1,5 +1,5 @@
 import type { UserWithId } from "~~/server/utils/auth";
-import type { CreateUserProfileSchema } from "./model";
+import type { CreateUserProfileSchema, GetUsersQuerySchema } from "./model";
 import { errAsync, okAsync, ResultAsync } from "neverthrow";
 import { deleteFile } from "~~/server/utils/files";
 import { UserRepo } from "./repo";
@@ -42,5 +42,13 @@ export const UserService = {
       }
       return okAsync(profile);
     });
+  },
+
+  verifyUser(userId: number) {
+    return UserRepo.verifyUser(userId);
+  },
+
+  getUsers(query: GetUsersQuerySchema) {
+    return UserRepo.getPaginatedUsers(query);
   },
 };
