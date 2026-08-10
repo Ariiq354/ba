@@ -20,3 +20,11 @@ This repository handles the core system for the member financial portal (Koperas
 
 - **Dashboard Overview**
   The personal financial view aggregating top-level KPI cards (Simpanan, Saham, Pembiayaan, Bagi Hasil) alongside monthly growth trend visualisations.
+
+### Master Data Configurations
+
+- **Master Saham (Share Pricing Log)**
+  Historical nominal and selling price settings for member equity shares (`hargaNominal`, `hargaJual`), tracked with creator audit (`updatedBy`). New entries append historical price points rather than overwriting existing records.
+
+- **Master Margin (Margin & Fee Tiering)**
+  Configuration tiers for financing margin percentages and contract fees (`biayaAkad`), parametrized by nominal financing bounds (`minNominal`, `maxNominal`), yearly margin percentage (`persenMarginTahun`), and collateral status (`jaminan`: `ADA` | `TIDAK_ADA`).
