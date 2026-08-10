@@ -96,8 +96,9 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     useToastSuccess("Berhasil", "Profil Anda berhasil diperbarui");
     emit("close");
   }
-  catch (err: any) {
-    useToastError("Gagal", err?.data?.message || err?.message || "Gagal memperbarui profil");
+  catch (err: unknown) {
+    const errorObj = err as { data?: { message?: string }; message?: string };
+    useToastError("Gagal", errorObj?.data?.message || errorObj?.message || "Gagal memperbarui profil");
   }
   finally {
     isLoading.value = false;

@@ -48,22 +48,27 @@ export const UserRepo = {
           })
           .where(eq(user.id, userId));
 
+        const profileData = {
+          idUser: userId,
+          noHp: data.noHp,
+          nik: data.nik,
+          namaBank: data.namaBank,
+          noRekening: data.noRekening,
+          pemilikRekening: data.pemilikRekening,
+          jalan: data.jalan,
+          idProvinsi: data.idProvinsi,
+          idKota: data.idKota,
+          idKecamatan: data.idKecamatan,
+          idKelurahan: data.idKelurahan,
+        };
+
         await tx
-          .update(userProfile)
-          .set({
-            idUser: userId,
-            noHp: data.noHp,
-            nik: data.nik,
-            namaBank: data.namaBank,
-            noRekening: data.noRekening,
-            pemilikRekening: data.pemilikRekening,
-            jalan: data.jalan,
-            idProvinsi: data.idProvinsi,
-            idKota: data.idKota,
-            idKecamatan: data.idKecamatan,
-            idKelurahan: data.idKelurahan,
-          })
-          .where(eq(userProfile.idUser, userId));
+          .insert(userProfile)
+          .values(profileData)
+          .onConflictDoUpdate({
+            target: userProfile.idUser,
+            set: profileData,
+          });
       }),
       cause => ({ code: "DATABASE_ERROR", cause } as const),
     );
