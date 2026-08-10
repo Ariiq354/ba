@@ -182,3 +182,5 @@ export type DeleteSchema = z.infer<typeof deleteSchema>;
 export const idParamsSchema = z.object({
   id: z.coerce.number(),
 });
+
+export type IdParamsSchema = z.infer<typeof idParamsSchema>;

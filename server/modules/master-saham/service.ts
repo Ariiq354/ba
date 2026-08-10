@@ -1,11 +1,10 @@
-import type { z } from "zod";
-import type { paginationSchema } from "~~/server/utils/schema";
-import type { createSahamSchema } from "./model";
+import type { PaginationSchema } from "~~/server/utils/schema";
+import type { CreateSahamSchema } from "./model";
 import { errAsync, okAsync } from "neverthrow";
 import { MasterSahamRepo } from "./repo";
 
 export const MasterSahamService = {
-  createSaham(userId: number, data: z.infer<typeof createSahamSchema>) {
+  createSaham(userId: number, data: CreateSahamSchema) {
     return MasterSahamRepo.create(userId, data);
   },
 
@@ -21,7 +20,7 @@ export const MasterSahamService = {
     });
   },
 
-  getPaginatedSaham(query: z.infer<typeof paginationSchema>) {
+  getPaginatedSaham(query: PaginationSchema) {
     return MasterSahamRepo.getPaginated(query);
   },
 };

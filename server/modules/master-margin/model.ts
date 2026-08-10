@@ -10,4 +10,8 @@ export const createMarginSchema = z.object({
   biayaAkad: z.number().min(0),
 });
 
+export type CreateMarginSchema = z.infer<typeof createMarginSchema>;
+
 export const updateMarginSchema = createMarginSchema.partial();
+
+export type UpdateMarginSchema = z.infer<typeof updateMarginSchema>;

@@ -1,20 +1,19 @@
-import type { z } from "zod";
-import type { paginationSchema } from "~~/server/utils/schema";
-import type { createMarginSchema, updateMarginSchema } from "./model";
+import type { PaginationSchema } from "~~/server/utils/schema";
+import type { CreateMarginSchema, UpdateMarginSchema } from "./model";
 import { count, desc, eq, inArray } from "drizzle-orm";
 import { ResultAsync } from "neverthrow";
 import { db } from "~~/server/database";
 import { margin } from "~~/server/database/schema/master";
 
 export const MasterMarginRepo = {
-  create(data: z.infer<typeof createMarginSchema>) {
+  create(data: CreateMarginSchema) {
     return ResultAsync.fromPromise(
       db.insert(margin).values(data).returning(),
       cause => ({ code: "DATABASE_ERROR", cause } as const),
     ).map(rows => rows[0]);
   },
 
-  getPaginated(query: z.infer<typeof paginationSchema>) {
+  getPaginated(query: PaginationSchema) {
     const offset = (query.page - 1) * query.limit;
 
     return ResultAsync.fromPromise(
@@ -40,7 +39,7 @@ export const MasterMarginRepo = {
     );
   },
 
-  update(id: number, data: z.infer<typeof updateMarginSchema>) {
+  update(id: number, data: UpdateMarginSchema) {
     return ResultAsync.fromPromise(
       db
         .update(margin)
