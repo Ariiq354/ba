@@ -3,7 +3,6 @@ import type { FormSubmitEvent } from "@nuxt/ui";
 import { z } from "zod";
 import { useToastError, useToastSuccess } from "~/composables/toast";
 import { useUploadFile } from "~/composables/upload";
-import { authClient } from "~/utils/auth";
 import InputFile from "../input/InputFile.vue";
 import SelectKecamatan from "../select/SelectKecamatan.vue";
 import SelectKelurahan from "../select/SelectKelurahan.vue";
@@ -91,7 +90,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       },
     });
 
-    await authClient.getSession();
+    reloadNuxtApp();
 
     useToastSuccess("Berhasil", "Profil Anda berhasil diperbarui");
     emit("close");
