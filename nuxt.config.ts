@@ -8,6 +8,7 @@ export default defineNuxtConfig({
     "nuxt-security",
     "@nuxt/ui",
     "@nuxt/image",
+    "nuxt-charts",
   ],
 
   css: ["~/assets/css/main.css"],

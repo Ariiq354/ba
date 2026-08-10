@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import DashboardContainer from "~/features/dashboard/DashboardContainer.vue";
+
 definePageMeta({
   layout: {
     name: "default",
@@ -10,5 +12,5 @@ definePageMeta({
 </script>
 
 <template>
-  <div>Dashboard</div>
+  <DashboardContainer />
 </template>

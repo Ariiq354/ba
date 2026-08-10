@@ -23,6 +23,7 @@
     "drizzle-orm": "^1.0.0-rc.4-fb12281",
     "neverthrow": "^8.2.0",
     "nuxt": "^4.5.2",
+    "nuxt-charts": "^2.2.0",
     "nuxt-security": "2.6.0",
     "postgres": "^3.4.9",
     "tailwindcss": "^4.3.3",
