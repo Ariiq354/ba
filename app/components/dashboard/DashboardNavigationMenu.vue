@@ -9,6 +9,11 @@ const items = ref<NavigationMenuItem[][]>([
     { label: "Pembiayaan Saya", to: "/dashboard/pembiayaan", icon: "i-tabler-file-text" },
     { label: "Bagi Hasil Usaha", to: "/dashboard/shu", icon: "i-tabler-coins" },
   ],
+  [
+    { label: "Master Data", type: "label" },
+    { label: "Master Margin", to: "/dashboard/master-margin", icon: "i-tabler-percentage" },
+    { label: "Master Saham", to: "/dashboard/master-saham", icon: "i-tabler-chart-candle" },
+  ],
 ]);
 </script>
 
