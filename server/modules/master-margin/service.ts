@@ -1,5 +1,6 @@
 import type { z } from "zod";
-import type { createMarginSchema, marginQuerySchema, updateMarginSchema } from "./model";
+import type { paginationSchema } from "~~/server/utils/schema";
+import type { createMarginSchema, updateMarginSchema } from "./model";
 import { errAsync, okAsync } from "neverthrow";
 import { MasterMarginRepo } from "./repo";
 
@@ -8,19 +9,7 @@ export const MasterMarginService = {
     return MasterMarginRepo.create(data);
   },
 
-  getMarginById(id: number) {
-    return MasterMarginRepo.getById(id).andThen((data) => {
-      if (!data) {
-        return errAsync({
-          code: "MARGIN_NOT_FOUND",
-          message: "Data margin tidak ditemukan",
-        } as const);
-      }
-      return okAsync(data);
-    });
-  },
-
-  getPaginatedMargin(query: z.infer<typeof marginQuerySchema>) {
+  getPaginatedMargin(query: z.infer<typeof paginationSchema>) {
     return MasterMarginRepo.getPaginated(query);
   },
 
@@ -36,15 +25,7 @@ export const MasterMarginService = {
     });
   },
 
-  deleteMargin(id: number) {
-    return MasterMarginRepo.delete(id).andThen((deleted) => {
-      if (!deleted) {
-        return errAsync({
-          code: "MARGIN_NOT_FOUND",
-          message: "Data margin tidak ditemukan",
-        } as const);
-      }
-      return okAsync(deleted);
-    });
+  deleteMargin(ids: number[]) {
+    return MasterMarginRepo.deleteBulk(ids);
   },
 };

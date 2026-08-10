@@ -158,6 +158,13 @@ export function multipartFile({
   );
 }
 
+export const paginationSchema = z.object({
+  page: z.coerce.number().default(1),
+  limit: z.coerce.number().default(10),
+});
+
+export type PaginationSchema = z.infer<typeof paginationSchema>;
+
 export const paginationSearchSchema = z.object({
   page: z.coerce.number().default(1),
   limit: z.coerce.number().default(10),

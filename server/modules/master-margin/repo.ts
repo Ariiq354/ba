@@ -1,6 +1,7 @@
 import type { z } from "zod";
-import type { createMarginSchema, marginQuerySchema, updateMarginSchema } from "./model";
-import { count, desc, eq } from "drizzle-orm";
+import type { paginationSchema } from "~~/server/utils/schema";
+import type { createMarginSchema, updateMarginSchema } from "./model";
+import { count, desc, eq, inArray } from "drizzle-orm";
 import { ResultAsync } from "neverthrow";
 import { db } from "~~/server/database";
 import { margin } from "~~/server/database/schema/master";
@@ -13,19 +14,7 @@ export const MasterMarginRepo = {
     ).map(rows => rows[0]);
   },
 
-  getById(id: number) {
-    return ResultAsync.fromPromise(
-      db
-        .select()
-        .from(margin)
-        .where(eq(margin.id, id))
-        .limit(1)
-        .then(rows => rows[0] ?? null),
-      cause => ({ code: "DATABASE_ERROR", cause } as const),
-    );
-  },
-
-  getPaginated(query: z.infer<typeof marginQuerySchema>) {
+  getPaginated(query: z.infer<typeof paginationSchema>) {
     const offset = (query.page - 1) * query.limit;
 
     return ResultAsync.fromPromise(
@@ -62,13 +51,17 @@ export const MasterMarginRepo = {
     ).map(rows => rows[0] ?? null);
   },
 
-  delete(id: number) {
+  deleteBulk(ids: number[]) {
+    if (ids.length === 0) {
+      return ResultAsync.fromSafePromise(Promise.resolve([]));
+    }
+
     return ResultAsync.fromPromise(
       db
         .delete(margin)
-        .where(eq(margin.id, id))
+        .where(inArray(margin.id, ids))
         .returning(),
       cause => ({ code: "DATABASE_ERROR", cause } as const),
-    ).map(rows => rows[0] ?? null);
+    );
   },
 };
