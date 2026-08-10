@@ -21,7 +21,7 @@ const config = useRuntimeConfig();
     <NuxtImg :src="`${config.public.imageUrl}/${foto}`" class="ring-1 ring-muted rounded-lg object-cover object-center aspect-square w-40" />
     <UButton
       v-if="!disabled"
-      icon="i-lucide-x"
+      icon="i-tabler-x"
       color="neutral"
       :ui="{ leadingIcon: 'size-4' }"
       class="absolute -inset-e-1.5 -top-1.5 rounded-full p-1 opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
@@ -33,7 +33,7 @@ const config = useRuntimeConfig();
     v-model="file"
     highlight
     color="neutral"
-    icon="i-lucide-image"
+    icon="i-tabler-photo"
     :label="label"
     :description="description"
     class="aspect-square w-40"

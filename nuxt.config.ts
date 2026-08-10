@@ -53,6 +53,7 @@ export default defineNuxtConfig({
 
   icon: {
     clientBundle: {
+      scan: true,
       icons: [
         "tabler:arrow-down",
         "tabler:arrow-left",
