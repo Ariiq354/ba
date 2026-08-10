@@ -1,5 +1,5 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter/relations-v2";
-import { betterAuth } from "better-auth";
+import { betterAuth } from "better-auth/minimal";
 import { admin as adminPlugins, username } from "better-auth/plugins";
 import { db } from "../database";
 import { relations } from "../database/relations";
@@ -25,6 +25,12 @@ export const auth = betterAuth({
           },
         }),
       },
+    },
+  },
+  session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60,
     },
   },
   emailAndPassword: {

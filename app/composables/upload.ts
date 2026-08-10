@@ -1,17 +1,12 @@
-interface PresignedResponse {
-  uploadUrl: string;
-  key: string;
-}
-
-export async function uploadFile(
+export async function useUploadFile(
   file: File,
-  options: { dir: string }
-): Promise<string> {
+  dir: string,
+) {
   // 1. Dapatkan presigned upload URL & pending file ID dari server
-  const presigned = await $fetch<PresignedResponse>("/api/v1/files/presigned", {
+  const presigned = await $fetch("/api/v1/files/presigned", {
     method: "POST",
     body: {
-      dir: options.dir,
+      dir,
       filename: file.name,
       filesize: file.size,
       fileType: file.type || "application/octet-stream",
@@ -29,7 +24,3 @@ export async function uploadFile(
 
   return presigned.key;
 }
-
-// Alias untuk kompatibilitas jika masih ingin menggunakan nama useUploadFile
-export const useUploadFile = uploadFile;
-

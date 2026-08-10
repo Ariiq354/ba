@@ -1,6 +1,6 @@
 import type { PresignedUploadInput } from "./model";
-import { errAsync, ResultAsync } from "neverthrow";
-import { getUploadUrl } from "~~/server/utils/files";
+import { errAsync, okAsync, ResultAsync } from "neverthrow";
+import { deleteFile, getUploadUrl } from "~~/server/utils/files";
 import { UPLOAD_CONFIG } from "./config";
 import { FilesRepo } from "./repo";
 
@@ -41,6 +41,35 @@ export const FilesService = {
         uploadUrl,
         key,
       }));
+    });
+  },
+
+  cleanupPendingFiles() {
+    return FilesRepo.getPendingFiles().andThen((pendingFiles) => {
+      if (pendingFiles.length === 0) {
+        return okAsync({ deletedCount: 0 });
+      }
+
+      return ResultAsync.fromPromise(
+        (async () => {
+          const deletedPublicIds: string[] = [];
+          for (const file of pendingFiles) {
+            try {
+              await deleteFile(file.publicId);
+            }
+            catch (err) {
+              console.error(`Failed to delete file from S3: ${file.publicId}`, err);
+            }
+            deletedPublicIds.push(file.publicId);
+          }
+          return deletedPublicIds;
+        })(),
+        cause => ({ code: "S3_DELETE_ERROR", cause } as const),
+      ).andThen((deletedPublicIds) => {
+        return FilesRepo.deleteFilesByPublicIds(deletedPublicIds).map(() => ({
+          deletedCount: deletedPublicIds.length,
+        }));
+      });
     });
   },
 };

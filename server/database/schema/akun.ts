@@ -1,4 +1,4 @@
-import { boolean, integer, pgEnum, snakeCase, text } from "drizzle-orm/pg-core";
+import { boolean, integer, pgEnum, snakeCase, text, timestamp } from "drizzle-orm/pg-core";
 
 export const kategoriAkunEnum = pgEnum("kategori_akun", [
   "aktiva",
@@ -16,4 +16,5 @@ export const akun = snakeCase.table("akun", {
   kategori: kategoriAkunEnum().notNull(),
   normalBalance: normalBalanceEnum().notNull(),
   isActive: boolean().notNull().default(true),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });

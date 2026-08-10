@@ -5,7 +5,6 @@ import {
   snakeCase,
   text,
   timestamp,
-  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createdUpdated } from "./common";
 import { kelompok } from "./kelompok";
@@ -19,14 +18,16 @@ export const user = snakeCase.table("user", {
   emailVerified: boolean().notNull(),
   image: text(),
   role: text(),
-  banned: boolean().default(false),
+  banned: boolean(),
   banReason: text(),
   idKelompok: integer()
     .notNull()
     .references(() => kelompok.id),
   banExpires: timestamp({ withTimezone: true }),
   ...createdUpdated,
-}, table => [uniqueIndex("email_idx").on(table.email)]);
+}, table => [
+  index("user_kelompok_idx").on(table.idKelompok),
+]);
 
 export const session = snakeCase.table("session", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
@@ -34,14 +35,11 @@ export const session = snakeCase.table("session", {
   token: text().notNull().unique(),
   ipAddress: text(),
   userAgent: text(),
-  userId: integer()
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
+  userId: integer().notNull().references(() => user.id, { onDelete: "cascade" }),
   impersonatedBy: text(),
   ...createdUpdated,
 }, table => [
   index("userid_idx_session").on(table.userId),
-  index("token_idx").on(table.token),
 ]);
 
 export const account = snakeCase.table("account", {
@@ -60,7 +58,9 @@ export const account = snakeCase.table("account", {
   scope: text(),
   password: text(),
   ...createdUpdated,
-}, table => [index("userid_idx").on(table.userId)]);
+}, table => [
+  index("userid_idx").on(table.userId),
+]);
 
 export const verification = snakeCase.table("verification", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
@@ -68,4 +68,6 @@ export const verification = snakeCase.table("verification", {
   value: text().notNull(),
   expiresAt: timestamp({ withTimezone: true }).notNull(),
   ...createdUpdated,
-}, table => [index("verification_identifier_idx").on(table.identifier)]);
+}, table => [
+  index("verification_identifier_idx").on(table.identifier),
+]);

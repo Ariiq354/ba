@@ -9,6 +9,7 @@ const EnvZodSchema = z.object({
   CLOUDFLARE_ACCESS_ID: z.string().min(1),
   CLOUDFLARE_SECRET_ID: z.string().min(1),
   CLOUDFLARE_BUCKET: z.string().min(1),
+  CRON_SECRET: z.string().optional(),
 });
 
 const parsedEnv = EnvZodSchema.safeParse(process.env);

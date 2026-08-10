@@ -25,7 +25,7 @@ const config = useRuntimeConfig();
       color="neutral"
       :ui="{ leadingIcon: 'size-4' }"
       class="absolute -inset-e-1.5 -top-1.5 rounded-full p-1 opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
-      @click="() => { foto = '' }"
+      @click="() => { foto = undefined }"
     />
   </div>
   <UFileUpload

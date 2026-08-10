@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { FormSubmitEvent } from "@nuxt/ui";
 import { z } from "zod";
+import { useUploadFile } from "~/composables/upload";
 import InputFile from "../input/InputFile.vue";
 import SelectKecamatan from "../select/SelectKecamatan.vue";
 import SelectKelurahan from "../select/SelectKelurahan.vue";
@@ -29,15 +30,17 @@ type Schema = z.infer<typeof schema>;
 const state = ref<Partial<Schema>>({});
 
 const isLoading = ref(false);
-async function onSubmit(_event: FormSubmitEvent<Schema>) {
-  // logic update profil akan diimplementasikan berikutnya
+async function onSubmit(event: FormSubmitEvent<Schema>) {
+  if (event.data.avatar) {
+    const uploadKey = await useUploadFile(event.data.avatar, "avatar");
+  }
 }
 </script>
 
 <template>
   <UModal
     title="Ubah Profil"
-    description="Perbarui informasi profil Anda."
+    description="Perbarui informasi profil Anda."\
     class="max-w-2xl"
   >
     <template #body>

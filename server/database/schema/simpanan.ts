@@ -1,4 +1,4 @@
-import { date, integer, pgEnum, snakeCase, text, timestamp } from "drizzle-orm/pg-core";
+import { bigint, date, index, integer, pgEnum, snakeCase, text, timestamp } from "drizzle-orm/pg-core";
 import { akun } from "./akun";
 import { user } from "./auth";
 import { createdUpdated } from "./common";
@@ -9,20 +9,20 @@ export const jenisPemindahbukuanEnum = pgEnum("jenis_pemindahbukuan", ["saham_ke
 
 export const saldoSimpanan = snakeCase.table("saldo_simpanan", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
-  idUser: integer().notNull().references(() => user.id, { onDelete: "cascade" }).unique(),
-  saldoTabungan: integer().notNull().default(0),
-  saldoSaham: integer().notNull().default(0),
+  userId: integer().notNull().references(() => user.id, { onDelete: "cascade" }).unique(),
+  saldoTabungan: bigint({ mode: "number" }).notNull().default(0),
+  saldoSaham: bigint({ mode: "number" }).notNull().default(0),
   ...createdUpdated,
 });
 
 export const mutasiSimpanan = snakeCase.table("mutasi_simpanan", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
   kodeTransaksi: text().notNull().unique(),
-  idUser: integer().notNull().references(() => user.id),
-  kodeAkun: text().notNull().references(() => akun.kodeAkun),
+  userId: integer().notNull().references(() => user.id),
+  akunId: integer().notNull().references(() => akun.id),
   jenisTransaksi: jenisTransaksiEnum().notNull(),
-  nilaiTransaksi: integer().notNull(),
-  saldoSetelahTransaksi: integer().notNull(),
+  nilaiTransaksi: bigint({ mode: "number" }).notNull(),
+  saldoSetelahTransaksi: bigint({ mode: "number" }).notNull(),
   tanggalTransaksi: date().notNull(),
   statusApproved: approvedStatusEnum().notNull().default("pending"),
   alasanPenolakan: text(),
@@ -31,16 +31,20 @@ export const mutasiSimpanan = snakeCase.table("mutasi_simpanan", {
   approvedBy: integer().references(() => user.id),
   approvedAt: timestamp({ withTimezone: true }),
   ...createdUpdated,
-});
+}, table => [
+  index("mutasi_simpanan_user_id_idx").on(table.userId),
+  index("mutasi_simpanan_akun_id_idx").on(table.akunId),
+  index("mutasi_simpanan_tanggal_transaksi_idx").on(table.tanggalTransaksi),
+]);
 
 export const pemindahbukuan = snakeCase.table("pemindahbukuan", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
   kodeTransaksi: text().notNull().unique(),
   idUserSumber: integer().notNull().references(() => user.id),
-  kodeAkunSumber: text().notNull().references(() => akun.kodeAkun),
+  akunIdSumber: integer().notNull().references(() => akun.id),
   idUserTujuan: integer().notNull().references(() => user.id),
-  kodeAkunTujuan: text().notNull().references(() => akun.kodeAkun),
-  nominal: integer().notNull(),
+  akunIdTujuan: integer().notNull().references(() => akun.id),
+  nominal: bigint({ mode: "number" }).notNull(),
   tipePemindahbukuan: jenisPemindahbukuanEnum().notNull(),
   tanggalTransaksi: date().notNull(),
   statusApproved: approvedStatusEnum().notNull().default("pending"),
@@ -50,4 +54,8 @@ export const pemindahbukuan = snakeCase.table("pemindahbukuan", {
   approvedBy: integer().references(() => user.id),
   approvedAt: timestamp({ withTimezone: true }),
   ...createdUpdated,
-});
+}, table => [
+  index("pemindahbukuan_user_sumber_idx").on(table.idUserSumber),
+  index("pemindahbukuan_user_tujuan_idx").on(table.idUserTujuan),
+  index("pemindahbukuan_tanggal_transaksi_idx").on(table.tanggalTransaksi),
+]);
