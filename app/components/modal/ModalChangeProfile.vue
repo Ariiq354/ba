@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { FormSubmitEvent } from "@nuxt/ui";
 import { z } from "zod";
+import { useToastError, useToastSuccess } from "~/composables/toast";
 import { useUploadFile } from "~/composables/upload";
+import { authClient } from "~/utils/auth";
 import InputFile from "../input/InputFile.vue";
 import SelectKecamatan from "../select/SelectKecamatan.vue";
 import SelectKelurahan from "../select/SelectKelurahan.vue";
@@ -11,7 +13,11 @@ import SelectProvinsi from "../select/SelectProvinsi.vue";
 const emit = defineEmits<{ close: [] }>();
 
 const schema = z.object({
-  avatar: z.file().max(5 * 1024 * 1024, "Ukuran foto profil maksimal 5MB").mime(["image/png", "image/jpeg", "image/jpg"], "Format foto profil harus PNG, JPEG, atau JPG").nullish(),
+  avatar: z
+    .file()
+    .max(5 * 1024 * 1024, "Ukuran foto profil maksimal 5MB")
+    .mime(["image/png", "image/jpeg", "image/jpg"], "Format foto profil harus PNG, JPEG, atau JPG")
+    .nullish(),
   avatarUrl: z.string().optional(),
   name: z.string().min(1, "Nama wajib diisi"),
   noHp: z.string().optional(),
@@ -29,10 +35,72 @@ type Schema = z.infer<typeof schema>;
 
 const state = ref<Partial<Schema>>({});
 
+const { data: userProfile, status } = useLazyFetch("/api/v1/user/profile");
+
+watch(userProfile, (userData) => {
+  if (userData) {
+    state.value = {
+      name: userData.name ?? "",
+      avatarUrl: userData.image ?? undefined,
+      noHp: userData.noHp ?? "",
+      nik: userData.nik ?? "",
+      namaBank: userData.namaBank ?? "",
+      noRekening: userData.noRekening ?? "",
+      pemilikRekening: userData.pemilikRekening ?? "",
+      jalan: userData.jalan ?? "",
+      idProvinsi: userData.idProvinsi ?? undefined,
+      idKota: userData.idKota ?? undefined,
+      idKecamatan: userData.idKecamatan ?? undefined,
+      idKelurahan: userData.idKelurahan ?? undefined,
+    };
+  }
+}, { immediate: true });
+
 const isLoading = ref(false);
+
 async function onSubmit(event: FormSubmitEvent<Schema>) {
-  if (event.data.avatar) {
-    const uploadKey = await useUploadFile(event.data.avatar, "avatar");
+  isLoading.value = true;
+  try {
+    let uploadedImageKey: string | undefined;
+    let imageAction: "keep" | "remove" | "update" = "keep";
+
+    if (event.data.avatar instanceof File) {
+      uploadedImageKey = await useUploadFile(event.data.avatar, "avatar");
+      imageAction = "update";
+    }
+    else if (!state.value.avatarUrl && userProfile.value?.image) {
+      imageAction = "remove";
+    }
+
+    await $fetch("/api/v1/user/profile", {
+      method: "POST",
+      body: {
+        name: event.data.name,
+        image: uploadedImageKey,
+        imageAction,
+        noHp: event.data.noHp || undefined,
+        nik: event.data.nik || undefined,
+        namaBank: event.data.namaBank || undefined,
+        noRekening: event.data.noRekening || undefined,
+        pemilikRekening: event.data.pemilikRekening || undefined,
+        jalan: event.data.jalan || undefined,
+        idProvinsi: event.data.idProvinsi || undefined,
+        idKota: event.data.idKota || undefined,
+        idKecamatan: event.data.idKecamatan || undefined,
+        idKelurahan: event.data.idKelurahan || undefined,
+      },
+    });
+
+    await authClient.getSession();
+
+    useToastSuccess("Berhasil", "Profil Anda berhasil diperbarui");
+    emit("close");
+  }
+  catch (err: any) {
+    useToastError("Gagal", err?.data?.message || err?.message || "Gagal memperbarui profil");
+  }
+  finally {
+    isLoading.value = false;
   }
 }
 </script>
@@ -40,11 +108,41 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 <template>
   <UModal
     title="Ubah Profil"
-    description="Perbarui informasi profil Anda."\
+    description="Perbarui informasi profil Anda."
     class="max-w-2xl"
   >
     <template #body>
+      <div v-if="status === 'pending'" class="space-y-6">
+        <USkeleton class="aspect-square w-40 rounded-lg" />
+        <div class="space-y-4">
+          <USkeleton class="h-4 w-32" />
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <USkeleton class="h-9 sm:col-span-2 rounded-md" />
+            <USkeleton class="h-9 rounded-md" />
+            <USkeleton class="h-9 rounded-md" />
+          </div>
+        </div>
+        <div class="space-y-4">
+          <USkeleton class="h-4 w-40" />
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <USkeleton class="h-9 rounded-md" />
+            <USkeleton class="h-9 rounded-md" />
+            <USkeleton class="h-9 sm:col-span-2 rounded-md" />
+          </div>
+        </div>
+        <div class="space-y-4">
+          <USkeleton class="h-4 w-36" />
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <USkeleton class="h-9 sm:col-span-2 rounded-md" />
+            <USkeleton class="h-9 rounded-md" />
+            <USkeleton class="h-9 rounded-md" />
+            <USkeleton class="h-9 rounded-md" />
+            <USkeleton class="h-9 rounded-md" />
+          </div>
+        </div>
+      </div>
       <UForm
+        v-else
         id="form-profile"
         :schema="schema"
         :state="state"
@@ -186,6 +284,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
         form="form-profile"
         icon="i-tabler-check"
         :loading="isLoading"
+        :disabled="status === 'pending'"
       >
         Simpan
       </UButton>

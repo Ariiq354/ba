@@ -68,4 +68,33 @@ export const UserRepo = {
       cause => ({ code: "DATABASE_ERROR", cause } as const),
     );
   },
+
+  getUserProfile(userId: number) {
+    return ResultAsync.fromPromise(
+      db
+        .select({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+          noAnggota: userProfile.noAnggota,
+          noHp: userProfile.noHp,
+          nik: userProfile.nik,
+          namaBank: userProfile.namaBank,
+          noRekening: userProfile.noRekening,
+          pemilikRekening: userProfile.pemilikRekening,
+          jalan: userProfile.jalan,
+          idProvinsi: userProfile.idProvinsi,
+          idKota: userProfile.idKota,
+          idKecamatan: userProfile.idKecamatan,
+          idKelurahan: userProfile.idKelurahan,
+        })
+        .from(user)
+        .leftJoin(userProfile, eq(userProfile.idUser, user.id))
+        .where(eq(user.id, userId))
+        .limit(1)
+        .then(rows => rows[0] ?? null),
+      cause => ({ code: "DATABASE_ERROR", cause } as const),
+    );
+  },
 };

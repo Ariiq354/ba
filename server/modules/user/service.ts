@@ -31,4 +31,16 @@ export const UserService = {
       return okAsync(void 0);
     });
   },
+
+  getProfile(userId: number) {
+    return UserRepo.getUserProfile(userId).andThen((profile) => {
+      if (!profile) {
+        return errAsync({
+          code: "USER_NOT_FOUND",
+          message: "User tidak ditemukan",
+        } as const);
+      }
+      return okAsync(profile);
+    });
+  },
 };
