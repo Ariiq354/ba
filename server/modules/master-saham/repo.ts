@@ -1,4 +1,5 @@
-import type { CreateSahamInput, SahamQueryInput } from "./model";
+import type { z } from "zod";
+import type { createSahamSchema, sahamQuerySchema } from "./model";
 import { count, desc, eq } from "drizzle-orm";
 import { ResultAsync } from "neverthrow";
 import { db } from "~~/server/database";
@@ -6,7 +7,7 @@ import { user } from "~~/server/database/schema/auth";
 import { saham } from "~~/server/database/schema/master";
 
 export const MasterSahamRepo = {
-  create(userId: number, data: CreateSahamInput) {
+  create(userId: number, data: z.infer<typeof createSahamSchema>) {
     return ResultAsync.fromPromise(
       db
         .insert(saham)
@@ -40,7 +41,7 @@ export const MasterSahamRepo = {
     );
   },
 
-  getPaginated(query: SahamQueryInput) {
+  getPaginated(query: z.infer<typeof sahamQuerySchema>) {
     const offset = (query.page - 1) * query.limit;
 
     return ResultAsync.fromPromise(

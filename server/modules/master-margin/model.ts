@@ -20,8 +20,3 @@ export const marginQuerySchema = z.object({
 export const marginParamsSchema = z.object({
   id: z.coerce.number().int().positive(),
 });
-
-export type CreateMarginInput = z.infer<typeof createMarginSchema>;
-export type UpdateMarginInput = z.infer<typeof updateMarginSchema>;
-export type MarginQueryInput = z.infer<typeof marginQuerySchema>;
-export type MarginParamsInput = z.infer<typeof marginParamsSchema>;

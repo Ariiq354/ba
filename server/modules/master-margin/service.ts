@@ -1,9 +1,10 @@
-import type { CreateMarginInput, MarginQueryInput, UpdateMarginInput } from "./model";
+import type { z } from "zod";
+import type { createMarginSchema, marginQuerySchema, updateMarginSchema } from "./model";
 import { errAsync, okAsync } from "neverthrow";
 import { MasterMarginRepo } from "./repo";
 
 export const MasterMarginService = {
-  createMargin(data: CreateMarginInput) {
+  createMargin(data: z.infer<typeof createMarginSchema>) {
     return MasterMarginRepo.create(data);
   },
 
@@ -19,11 +20,11 @@ export const MasterMarginService = {
     });
   },
 
-  getPaginatedMargin(query: MarginQueryInput) {
+  getPaginatedMargin(query: z.infer<typeof marginQuerySchema>) {
     return MasterMarginRepo.getPaginated(query);
   },
 
-  updateMargin(id: number, data: UpdateMarginInput) {
+  updateMargin(id: number, data: z.infer<typeof updateMarginSchema>) {
     return MasterMarginRepo.update(id, data).andThen((updated) => {
       if (!updated) {
         return errAsync({

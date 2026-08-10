@@ -1,9 +1,10 @@
-import type { CreateSahamInput, SahamQueryInput } from "./model";
+import type { z } from "zod";
+import type { createSahamSchema, sahamQuerySchema } from "./model";
 import { errAsync, okAsync } from "neverthrow";
 import { MasterSahamRepo } from "./repo";
 
 export const MasterSahamService = {
-  createSaham(userId: number, data: CreateSahamInput) {
+  createSaham(userId: number, data: z.infer<typeof createSahamSchema>) {
     return MasterSahamRepo.create(userId, data);
   },
 
@@ -19,7 +20,7 @@ export const MasterSahamService = {
     });
   },
 
-  getPaginatedSaham(query: SahamQueryInput) {
+  getPaginatedSaham(query: z.infer<typeof sahamQuerySchema>) {
     return MasterSahamRepo.getPaginated(query);
   },
 };
