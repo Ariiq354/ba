@@ -15,23 +15,6 @@ export interface FlatJurnalRow {
   totalDetailsCount: number;
 }
 
-export interface JurnalItem {
-  id: number;
-  kodeTransaksi: string;
-  tanggalTransaksi: string;
-  keterangan: string | null;
-  userId: number;
-  userName: string | null;
-  details: {
-    id: number;
-    akunId: number;
-    kodeAkun: string;
-    namaAkun: string;
-    debit: number;
-    kredit: number;
-  }[];
-}
-
 export interface FormDetailLine {
   akunId: number | undefined;
   nominal: number;

@@ -29,37 +29,6 @@ function handleCreate() {
   });
 }
 
-async function handleEdit(headerId: number, row: FlatJurnalRow) {
-  // Fetch full details of this transaction header to populate form accurately
-  try {
-    const fullHeader: any = await $fetch(`/api/v1/jurnal`, {
-      query: { search: row.kodeTransaksi, limit: 100 },
-    });
-
-    const matchingRows = (fullHeader?.items || []).filter((i: FlatJurnalRow) => i.jurnalId === headerId);
-
-    const itemData = {
-      id: headerId,
-      kodeTransaksi: row.kodeTransaksi,
-      tanggalTransaksi: row.tanggalTransaksi,
-      keterangan: row.keterangan,
-      details: matchingRows.map((r: FlatJurnalRow) => ({
-        akunId: r.akunId,
-        debit: r.debit,
-        kredit: r.kredit,
-      })),
-    };
-
-    openModal(ModalJurnalForm, {
-      headerId,
-      itemData,
-      refresh,
-    });
-  } catch (err) {
-    console.error("Gagal memuat detail jurnal:", err);
-  }
-}
-
 function handleDelete(headerId: number, kodeTransaksi: string) {
   openModal(ModalConfirmDelete, {
     path: "/api/v1/jurnal",
@@ -111,7 +80,6 @@ function handleDelete(headerId: number, kodeTransaksi: string) {
         :total="data?.total"
         :total-headers="data?.totalHeaders"
         :limit="data?.limit"
-        @edit="handleEdit"
         @delete="handleDelete"
       />
     </UCard>

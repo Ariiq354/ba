@@ -1,4 +1,4 @@
-import type { CreateJurnalSchema, GetJurnalQuerySchema, UpdateJurnalSchema } from "./model";
+import type { CreateJurnalSchema, GetJurnalQuerySchema } from "./model";
 import { and, desc, eq, ilike, inArray, sql } from "drizzle-orm";
 import { ResultAsync } from "neverthrow";
 import { db } from "~~/server/database";
@@ -250,44 +250,6 @@ export const JurnalRepo = {
           limit: query.limit,
           totalPages: Math.ceil(totalHeaders / query.limit),
         };
-      }),
-      cause => ({ code: "DATABASE_ERROR", cause } as const),
-    );
-  },
-
-  update(id: number, data: UpdateJurnalSchema) {
-    return ResultAsync.fromPromise(
-      db.transaction(async (tx) => {
-        const [updatedHeader] = await tx
-          .update(jurnal)
-          .set({
-            kodeTransaksi: data.kodeTransaksi,
-            tanggalTransaksi: data.tanggalTransaksi,
-            keterangan: data.keterangan || null,
-          })
-          .where(eq(jurnal.id, id))
-          .returning();
-
-        if (!updatedHeader) {
-          throw new Error("Jurnal header not found");
-        }
-
-        // Delete old details and insert new ones
-        await tx.delete(jurnalDetail).where(eq(jurnalDetail.jurnalId, id));
-
-        const detailValues = data.details.map(d => ({
-          jurnalId: id,
-          akunId: d.akunId,
-          debit: Math.round(d.debit || 0),
-          kredit: Math.round(d.kredit || 0),
-        }));
-
-        const details = await tx
-          .insert(jurnalDetail)
-          .values(detailValues)
-          .returning();
-
-        return { header: updatedHeader, details };
       }),
       cause => ({ code: "DATABASE_ERROR", cause } as const),
     );

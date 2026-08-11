@@ -46,5 +46,6 @@ This repository handles the core system for the member financial portal (Koperas
 ### Accounting & Transactions
 
 - **Jurnal Transaksi (General Journal Entries)**
-  Double-entry journal records consisting of 1 header (`jurnal`: `kodeTransaksi`, `tanggalTransaksi`, `keterangan`, `userId`) and multiple detail lines (`jurnalDetail`: `akunId`, `debit`, `kredit`). Requires strict balance validation (`Sum(Debit) == Sum(Kredit)`). Formatted with auto-generated code prefix `TRX-{YYYYMM}-{SEQ}`.
+  Double-entry journal records consisting of 1 header (`jurnal`: `kodeTransaksi`, `tanggalTransaksi`, `keterangan`, `userId`) and multiple detail lines (`jurnalDetail`: `akunId`, `debit`, `kredit`). Requires strict balance validation (`Sum(Debit) == Sum(Kredit)`). Formatted with auto-generated code prefix `TRX-{YYYYMM}-{SEQ}`. Journal entries are immutable (cannot be edited directly; admins may only create new entries or delete existing ones).
+
 

@@ -1,4 +1,4 @@
-import type { CreateJurnalSchema, GetJurnalQuerySchema, UpdateJurnalSchema } from "./model";
+import type { CreateJurnalSchema, GetJurnalQuerySchema } from "./model";
 import { errAsync } from "neverthrow";
 import { JurnalRepo } from "./repo";
 
@@ -37,31 +37,6 @@ export const JurnalService = {
 
     return JurnalRepo.generateNextKodeTransaksi().andThen((autoCode) => {
       return JurnalRepo.create(data, userId, autoCode);
-    });
-  },
-
-  updateJurnal(id: number, data: UpdateJurnalSchema) {
-    return JurnalRepo.findById(id).andThen((existing) => {
-      if (!existing) {
-        return errAsync({
-          code: "JURNAL_NOT_FOUND",
-          message: "Data transaksi jurnal tidak ditemukan",
-        } as const);
-      }
-
-      if (data.kodeTransaksi && data.kodeTransaksi !== existing.kodeTransaksi) {
-        return JurnalRepo.findByKodeTransaksi(data.kodeTransaksi).andThen((other) => {
-          if (other) {
-            return errAsync({
-              code: "KODE_TRANSAKSI_EXISTS",
-              message: "Kode transaksi sudah digunakan oleh transaksi lain",
-            } as const);
-          }
-          return JurnalRepo.update(id, data);
-        });
-      }
-
-      return JurnalRepo.update(id, data);
     });
   },
 

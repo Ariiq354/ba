@@ -1,56 +1,25 @@
 <script setup lang="ts">
-import type { FormDetailLine, FlatJurnalRow } from "../model";
-import { formatRupiah } from "../model";
+import type { FormDetailLine } from "../model";
 import { useToastError, useToastSuccess } from "~/composables/toast";
+import { formatRupiah } from "../model";
 
 const props = defineProps<{
-  headerId?: number;
-  itemData?: {
-    id: number;
-    kodeTransaksi: string;
-    tanggalTransaksi: string;
-    keterangan: string | null;
-    details: {
-      akunId: number;
-      debit: number;
-      kredit: number;
-    }[];
-  };
   refresh?: () => void;
 }>();
 
 const emit = defineEmits<{ close: [] }>();
 
-const isEdit = computed(() => !!props.headerId || !!props.itemData);
-
 const todayStr = new Date().toISOString().substring(0, 10);
 
-const tanggalTransaksi = ref(props.itemData?.tanggalTransaksi || todayStr);
-const kodeTransaksi = ref(props.itemData?.kodeTransaksi || "");
-const keterangan = ref(props.itemData?.keterangan || "");
+const tanggalTransaksi = ref(todayStr);
+const kodeTransaksi = ref("");
+const keterangan = ref("");
 
-const debitItems = ref<FormDetailLine[]>([]);
-const kreditItems = ref<FormDetailLine[]>([]);
-
-if (props.itemData && props.itemData.details.length > 0) {
-  debitItems.value = props.itemData.details
-    .filter(d => Number(d.debit) > 0)
-    .map(d => ({ akunId: d.akunId, nominal: Number(d.debit) }));
-
-  kreditItems.value = props.itemData.details
-    .filter(d => Number(d.kredit) > 0)
-    .map(d => ({ akunId: d.akunId, nominal: Number(d.kredit) }));
-}
-
-if (debitItems.value.length === 0) {
-  debitItems.value = [{ akunId: undefined, nominal: 0 }];
-}
-if (kreditItems.value.length === 0) {
-  kreditItems.value = [{ akunId: undefined, nominal: 0 }];
-}
+const debitItems = ref<FormDetailLine[]>([{ akunId: undefined, nominal: 0 }]);
+const kreditItems = ref<FormDetailLine[]>([{ akunId: undefined, nominal: 0 }]);
 
 // Fetch active master akun list for dropdown options
-const { data: akunData, pending: loadingAkun } = await useFetch("/api/v1/master/akun", {
+const { data: akunData, pending: loadingAkun } = await useLazyFetch("/api/v1/master/akun", {
   query: { limit: 1000 },
 });
 
@@ -98,8 +67,10 @@ const selisih = computed(() => Math.abs(totalDebit.value - totalKredit.value));
 const isBalanced = computed(() => totalDebit.value > 0 && totalDebit.value === totalKredit.value);
 
 const isValidForm = computed(() => {
-  if (!tanggalTransaksi.value) return false;
-  if (!isBalanced.value) return false;
+  if (!tanggalTransaksi.value)
+    return false;
+  if (!isBalanced.value)
+    return false;
 
   const validDebits = debitItems.value.every(d => d.akunId && Number(d.nominal) > 0);
   const validKredits = kreditItems.value.every(k => k.akunId && Number(k.nominal) > 0);
@@ -110,7 +81,8 @@ const isValidForm = computed(() => {
 const isLoading = ref(false);
 
 async function handleSubmit() {
-  if (!isValidForm.value) return;
+  if (!isValidForm.value)
+    return;
 
   isLoading.value = true;
 
@@ -144,28 +116,21 @@ async function handleSubmit() {
   };
 
   try {
-    if (isEdit.value && (props.headerId || props.itemData?.id)) {
-      const targetId = props.headerId || props.itemData?.id;
-      await $fetch(`/api/v1/jurnal/${targetId}`, {
-        method: "PUT",
-        body: payload,
-      });
-      useToastSuccess("Berhasil", "Transaksi jurnal berhasil diperbarui");
-    } else {
-      await $fetch("/api/v1/jurnal", {
-        method: "POST",
-        body: payload,
-      });
-      useToastSuccess("Berhasil", "Transaksi jurnal baru berhasil disimpan");
-    }
+    await $fetch("/api/v1/jurnal", {
+      method: "POST",
+      body: payload,
+    });
+    useToastSuccess("Berhasil", "Transaksi jurnal baru berhasil disimpan");
     props.refresh?.();
     emit("close");
-  } catch (error: any) {
+  }
+  catch (error: any) {
     useToastError(
       "Gagal Menyimpan",
       error?.data?.statusMessage || error?.data?.message || "Terjadi kesalahan saat menyimpan transaksi.",
     );
-  } finally {
+  }
+  finally {
     isLoading.value = false;
   }
 }
@@ -173,14 +138,14 @@ async function handleSubmit() {
 
 <template>
   <UModal
-    :title="isEdit ? 'Edit Transaksi Jurnal' : 'Buat Transaksi Jurnal Baru'"
-    :description="isEdit ? 'Ubah rincian baris debit dan kredit transaksi.' : 'Masukkan transaksi jurnal baru dengan rincian debit dan kredit.'"
+    title="Buat Transaksi Jurnal Baru"
+    description="Masukkan transaksi jurnal baru dengan rincian debit dan kredit."
     class="sm:max-w-4xl"
   >
     <template #body>
       <form id="form-jurnal" class="space-y-6" @submit.prevent="handleSubmit">
         <!-- Header Info Fields -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <UFormField label="Tanggal Transaksi" required>
             <UInput
               v-model="tanggalTransaksi"
@@ -236,9 +201,13 @@ async function handleSubmit() {
             <table class="w-full text-sm text-left">
               <thead class="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
                 <tr>
-                  <th class="px-4 py-2 font-medium text-gray-600 dark:text-gray-400">Akun Perkiraan</th>
-                  <th class="px-4 py-2 font-medium text-gray-600 dark:text-gray-400 w-48 text-right">Nominal Debit (IDR)</th>
-                  <th class="px-3 py-2 w-12 text-center"></th>
+                  <th class="px-4 py-2 font-medium text-gray-600 dark:text-gray-400">
+                    Akun Perkiraan
+                  </th>
+                  <th class="px-4 py-2 font-medium text-gray-600 dark:text-gray-400 w-48 text-right">
+                    Nominal Debit (IDR)
+                  </th>
+                  <th class="px-3 py-2 w-12 text-center" />
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -247,6 +216,7 @@ async function handleSubmit() {
                     <USelectMenu
                       v-model="row.akunId"
                       :items="akunOptions"
+                      :loading="loadingAkun"
                       value-key="id"
                       label-key="label"
                       placeholder="Cari & pilih akun debit..."
@@ -303,9 +273,13 @@ async function handleSubmit() {
             <table class="w-full text-sm text-left">
               <thead class="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
                 <tr>
-                  <th class="px-4 py-2 font-medium text-gray-600 dark:text-gray-400">Akun Perkiraan</th>
-                  <th class="px-4 py-2 font-medium text-gray-600 dark:text-gray-400 w-48 text-right">Nominal Kredit (IDR)</th>
-                  <th class="px-3 py-2 w-12 text-center"></th>
+                  <th class="px-4 py-2 font-medium text-gray-600 dark:text-gray-400">
+                    Akun Perkiraan
+                  </th>
+                  <th class="px-4 py-2 font-medium text-gray-600 dark:text-gray-400 w-48 text-right">
+                    Nominal Kredit (IDR)
+                  </th>
+                  <th class="px-3 py-2 w-12 text-center" />
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -314,6 +288,7 @@ async function handleSubmit() {
                     <USelectMenu
                       v-model="row.akunId"
                       :items="akunOptions"
+                      :loading="loadingAkun"
                       value-key="id"
                       label-key="label"
                       placeholder="Cari & pilih akun kredit..."

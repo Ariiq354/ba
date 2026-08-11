@@ -48,5 +48,3 @@ export const createJurnalSchema = z
 
 export type CreateJurnalSchema = z.infer<typeof createJurnalSchema>;
 
-export const updateJurnalSchema = createJurnalSchema;
-export type UpdateJurnalSchema = z.infer<typeof updateJurnalSchema>;

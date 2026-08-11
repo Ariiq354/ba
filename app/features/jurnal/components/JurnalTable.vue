@@ -13,7 +13,6 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: "edit", headerId: number, row: FlatJurnalRow): void;
   (e: "delete", headerId: number, kodeTransaksi: string): void;
   (e: "update:page", page: number): void;
 }>();
@@ -103,14 +102,6 @@ const processedRows = computed<ProcessedFlatJurnalRow[]>(() => {
 
 function getActionItems(row: FlatJurnalRow): DropdownMenuItem[] {
   return [
-    {
-      label: "Edit Transaksi",
-      icon: "i-tabler-edit",
-      onSelect() {
-        emit("edit", row.jurnalId, row);
-      },
-    },
-    { type: "separator" },
     {
       label: "Hapus Transaksi",
       icon: "i-tabler-trash",
