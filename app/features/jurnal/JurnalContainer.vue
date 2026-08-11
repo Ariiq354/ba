@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { FlatJurnalRow } from "./model";
 import InputSearch from "~/components/input/InputSearch.vue";
 import ModalConfirmDelete from "~/components/modal/ModalConfirmDelete.vue";
 import { openModal } from "~/composables/modal";

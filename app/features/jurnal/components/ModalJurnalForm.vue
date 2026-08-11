@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { CalendarDate } from "@internationalized/date";
+import { getLocalTimeZone, today } from "@internationalized/date";
 import type { FormDetailLine } from "../model";
 import { useToastError, useToastSuccess } from "~/composables/toast";
 import { formatRupiah } from "../model";
@@ -9,9 +11,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ close: [] }>();
 
-const todayStr = new Date().toISOString().substring(0, 10);
-
-const tanggalTransaksi = ref(todayStr);
+const tanggalTransaksi = ref<CalendarDate>(today(getLocalTimeZone()));
 const keterangan = ref("");
 
 const debitItems = ref<FormDetailLine[]>([{ akunId: undefined, nominal: 0 }]);
@@ -108,7 +108,7 @@ async function handleSubmit() {
   }
 
   const payload = {
-    tanggalTransaksi: tanggalTransaksi.value,
+    tanggalTransaksi: tanggalTransaksi.value ? tanggalTransaksi.value.toString() : "",
     keterangan: keterangan.value.trim() || undefined,
     details: detailsPayload,
   };
@@ -143,12 +143,10 @@ async function handleSubmit() {
     <template #body>
       <form id="form-jurnal" class="space-y-6" @submit.prevent="handleSubmit">
         <!-- Header Info Fields -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="space-y-4">
           <UFormField label="Tanggal Transaksi" required>
-            <UInput
+            <InputCalendar
               v-model="tanggalTransaksi"
-              type="date"
-              class="w-full"
               :disabled="isLoading"
             />
           </UFormField>

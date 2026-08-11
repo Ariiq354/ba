@@ -261,7 +261,7 @@ function pembiayaanXFormatter(tick: number | Date) {
               :y-grid-line="true"
             />
             <template #fallback>
-              <USkeleton class="h-[280px] w-full rounded-lg" />
+              <USkeleton class="h-70 w-full rounded-lg" />
             </template>
           </ClientOnly>
         </div>
@@ -311,7 +311,7 @@ function pembiayaanXFormatter(tick: number | Date) {
               :y-grid-line="true"
             />
             <template #fallback>
-              <USkeleton class="h-[280px] w-full rounded-lg" />
+              <USkeleton class="h-70 w-full rounded-lg" />
             </template>
           </ClientOnly>
         </div>
