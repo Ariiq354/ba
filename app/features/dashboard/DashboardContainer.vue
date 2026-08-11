@@ -118,8 +118,9 @@ const labaCategories = {
   },
 };
 
-function labaXFormatter(_tick: number | Date, i?: number) {
-  return labaChartData[i ?? 0]?.month || "";
+function labaXFormatter(tick: number | Date) {
+  const index = Math.round(Number(tick));
+  return labaChartData[index]?.month || "";
 }
 
 // Dummy Data 2: Pertumbuhan Pembiayaan (Monthly)
@@ -145,8 +146,9 @@ const pembiayaanCategories = {
   },
 };
 
-function pembiayaanXFormatter(_tick: number | Date, i?: number) {
-  return pembiayaanChartData[i ?? 0]?.month || "";
+function pembiayaanXFormatter(tick: number | Date) {
+  const index = Math.round(Number(tick));
+  return pembiayaanChartData[index]?.month || "";
 }
 </script>
 
@@ -242,20 +244,26 @@ function pembiayaanXFormatter(_tick: number | Date, i?: number) {
         </template>
 
         <div class="pt-2 pb-1">
-          <AreaChart
-            :data="labaChartData"
-            :categories="labaCategories"
-            :height="280"
-            :x-formatter="labaXFormatter"
-            :y-formatter="formatRupiahShort"
-            :gradient-stops="[
-              { offset: '0%', stopOpacity: 0.4 },
-              { offset: '100%', stopOpacity: 0.02 },
-            ]"
-            :line-width="2.5"
-            :x-grid-line="false"
-            :y-grid-line="true"
-          />
+          <ClientOnly>
+            <AreaChart
+              :data="labaChartData"
+              :categories="labaCategories"
+              :height="280"
+              :x-formatter="labaXFormatter"
+              :y-formatter="formatRupiahShort"
+              :x-num-ticks="labaChartData.length"
+              :gradient-stops="[
+                { offset: '0%', stopOpacity: 0.4 },
+                { offset: '100%', stopOpacity: 0.02 },
+              ]"
+              :line-width="2.5"
+              :x-grid-line="false"
+              :y-grid-line="true"
+            />
+            <template #fallback>
+              <USkeleton class="h-[280px] w-full rounded-lg" />
+            </template>
+          </ClientOnly>
         </div>
 
         <template #footer>
@@ -286,20 +294,26 @@ function pembiayaanXFormatter(_tick: number | Date, i?: number) {
         </template>
 
         <div class="pt-2 pb-1">
-          <AreaChart
-            :data="pembiayaanChartData"
-            :categories="pembiayaanCategories"
-            :height="280"
-            :x-formatter="pembiayaanXFormatter"
-            :y-formatter="formatRupiahShort"
-            :gradient-stops="[
-              { offset: '0%', stopOpacity: 0.4 },
-              { offset: '100%', stopOpacity: 0.02 },
-            ]"
-            :line-width="2.5"
-            :x-grid-line="false"
-            :y-grid-line="true"
-          />
+          <ClientOnly>
+            <AreaChart
+              :data="pembiayaanChartData"
+              :categories="pembiayaanCategories"
+              :height="280"
+              :x-formatter="pembiayaanXFormatter"
+              :y-formatter="formatRupiahShort"
+              :x-num-ticks="pembiayaanChartData.length"
+              :gradient-stops="[
+                { offset: '0%', stopOpacity: 0.4 },
+                { offset: '100%', stopOpacity: 0.02 },
+              ]"
+              :line-width="2.5"
+              :x-grid-line="false"
+              :y-grid-line="true"
+            />
+            <template #fallback>
+              <USkeleton class="h-[280px] w-full rounded-lg" />
+            </template>
+          </ClientOnly>
         </div>
 
         <template #footer>
