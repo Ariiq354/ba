@@ -3,12 +3,16 @@ definePageMeta({
   layout: {
     name: "default",
     props: {
-      title: "Dashboard",
+      title: "Pembiayaan Saya",
     },
   },
+});
+
+useHead({
+  title: "Pembiayaan Saya · Berkah Amanah",
 });
 </script>
 
 <template>
-  <div>pembiayaan Saya</div>
+  <div>Pembiayaan Saya</div>
 </template>

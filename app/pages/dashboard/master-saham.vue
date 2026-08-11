@@ -9,6 +9,10 @@ definePageMeta({
     },
   },
 });
+
+useHead({
+  title: "Master Saham · Berkah Amanah",
+});
 </script>
 
 <template>

@@ -1,6 +1,6 @@
 import { createError } from "h3";
-import { updateMarginSchema } from "~~/server/modules/master-margin/model";
-import { MasterMarginService } from "~~/server/modules/master-margin/service";
+import { updateAkunSchema } from "~~/server/modules/master-akun/model";
+import { MasterAkunService } from "~~/server/modules/master-akun/service";
 import { adminGuard } from "~~/server/utils/guard";
 import { idParamsSchema } from "~~/server/utils/schema";
 import { getValidatedRouterParamsSafe, readValidatedBodySafe } from "~~/server/utils/validator";
@@ -8,15 +8,21 @@ import { getValidatedRouterParamsSafe, readValidatedBodySafe } from "~~/server/u
 export default defineEventHandler(async (event) => {
   adminGuard(event);
   const { id } = await getValidatedRouterParamsSafe(event, idParamsSchema);
-  const body = await readValidatedBodySafe(event, updateMarginSchema);
+  const body = await readValidatedBodySafe(event, updateAkunSchema);
 
-  return await MasterMarginService.updateMargin(id, body).match(
+  return await MasterAkunService.updateAkun(id, body).match(
     data => data,
     (err) => {
       switch (err.code) {
-        case "MARGIN_NOT_FOUND":
+        case "AKUN_NOT_FOUND":
           throw createError({
             statusCode: 404,
+            statusMessage: err.message,
+          });
+
+        case "KODE_AKUN_EXISTS":
+          throw createError({
+            statusCode: 400,
             statusMessage: err.message,
           });
 

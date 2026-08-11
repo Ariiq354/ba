@@ -14,6 +14,7 @@ const items = ref<NavigationMenuItem[][]>([
     { label: "Manajemen Anggota", to: "/dashboard/users", icon: "i-tabler-users" },
     { label: "Master Margin", to: "/dashboard/master-margin", icon: "i-tabler-percentage" },
     { label: "Master Saham", to: "/dashboard/master-saham", icon: "i-tabler-chart-candle" },
+    { label: "Daftar Akun", to: "/dashboard/master-akun", icon: "i-tabler-book-2" },
   ],
 ]);
 </script>

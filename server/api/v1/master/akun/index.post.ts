@@ -1,22 +1,20 @@
 import { createError } from "h3";
-import { updateMarginSchema } from "~~/server/modules/master-margin/model";
-import { MasterMarginService } from "~~/server/modules/master-margin/service";
+import { createAkunSchema } from "~~/server/modules/master-akun/model";
+import { MasterAkunService } from "~~/server/modules/master-akun/service";
 import { adminGuard } from "~~/server/utils/guard";
-import { idParamsSchema } from "~~/server/utils/schema";
-import { getValidatedRouterParamsSafe, readValidatedBodySafe } from "~~/server/utils/validator";
+import { readValidatedBodySafe } from "~~/server/utils/validator";
 
 export default defineEventHandler(async (event) => {
   adminGuard(event);
-  const { id } = await getValidatedRouterParamsSafe(event, idParamsSchema);
-  const body = await readValidatedBodySafe(event, updateMarginSchema);
+  const body = await readValidatedBodySafe(event, createAkunSchema);
 
-  return await MasterMarginService.updateMargin(id, body).match(
+  return await MasterAkunService.createAkun(body).match(
     data => data,
     (err) => {
       switch (err.code) {
-        case "MARGIN_NOT_FOUND":
+        case "KODE_AKUN_EXISTS":
           throw createError({
-            statusCode: 404,
+            statusCode: 400,
             statusMessage: err.message,
           });
 

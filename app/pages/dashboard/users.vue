@@ -9,6 +9,10 @@ definePageMeta({
     },
   },
 });
+
+useHead({
+  title: "Manajemen Anggota · Berkah Amanah",
+});
 </script>
 
 <template>
