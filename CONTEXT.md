@@ -42,3 +42,9 @@ This repository handles the core system for the member financial portal (Koperas
 
 - **Penanggung Jawab (PJ)**
   A verified member (`banned: false`, non-admin) assigned by an Administrator to oversee their designated group (`idKelompok`). Users with `role: "admin"` are superusers and cannot be set as PJ. When assigned, the user's `role` changes to `"pj"` and a record is created in `kelompok_penanggung_jawab`. Revoking PJ status returns the `role` to `"user"` and removes the group mapping.
+
+### Accounting & Transactions
+
+- **Jurnal Transaksi (General Journal Entries)**
+  Double-entry journal records consisting of 1 header (`jurnal`: `kodeTransaksi`, `tanggalTransaksi`, `keterangan`, `userId`) and multiple detail lines (`jurnalDetail`: `akunId`, `debit`, `kredit`). Requires strict balance validation (`Sum(Debit) == Sum(Kredit)`). Formatted with auto-generated code prefix `TRX-{YYYYMM}-{SEQ}`.
+
