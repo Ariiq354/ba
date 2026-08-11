@@ -48,6 +48,10 @@ export const UserService = {
     return UserRepo.verifyUser(userId);
   },
 
+  setUserPj(userId: number, isPj: boolean) {
+    return UserRepo.setUserPj(userId, isPj);
+  },
+
   getUsers(query: GetUsersQuerySchema) {
     return UserRepo.getPaginatedUsers(query);
   },

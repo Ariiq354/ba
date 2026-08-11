@@ -4,7 +4,7 @@ import { errAsync, okAsync, ResultAsync } from "neverthrow";
 import { db } from "~~/server/database";
 import { user } from "~~/server/database/schema/auth";
 import { files } from "~~/server/database/schema/files";
-import { kelompok } from "~~/server/database/schema/kelompok";
+import { kelompok, kelompokPenanggungJawab } from "~~/server/database/schema/kelompok";
 import { userProfile } from "~~/server/database/schema/users";
 import { generateNoAnggota } from "~~/server/utils/member";
 
@@ -166,6 +166,78 @@ export const UserRepo = {
         } as const);
       }
       return okAsync({ noAnggota: res.noAnggota });
+    });
+  },
+
+  setUserPj(userId: number, isPj: boolean) {
+    return ResultAsync.fromPromise(
+      db.transaction(async (tx) => {
+        const targetUser = await tx
+          .select({
+            id: user.id,
+            banned: user.banned,
+            idKelompok: user.idKelompok,
+          })
+          .from(user)
+          .where(eq(user.id, userId))
+          .limit(1)
+          .then(rows => rows[0] ?? null);
+
+        if (!targetUser) {
+          return { status: "NOT_FOUND" } as const;
+        }
+
+        if (targetUser.banned) {
+          return { status: "NOT_VERIFIED" } as const;
+        }
+
+        if (isPj) {
+          await tx
+            .update(user)
+            .set({ role: "pj" })
+            .where(eq(user.id, userId));
+
+          await tx
+            .insert(kelompokPenanggungJawab)
+            .values({
+              kelompokId: targetUser.idKelompok,
+              userId,
+            })
+            .onConflictDoNothing();
+        }
+        else {
+          await tx
+            .update(user)
+            .set({ role: "user" })
+            .where(eq(user.id, userId));
+
+          await tx
+            .delete(kelompokPenanggungJawab)
+            .where(
+              and(
+                eq(kelompokPenanggungJawab.kelompokId, targetUser.idKelompok),
+                eq(kelompokPenanggungJawab.userId, userId),
+              ),
+            );
+        }
+
+        return { status: "SUCCESS" } as const;
+      }),
+      cause => ({ code: "DATABASE_ERROR", cause } as const),
+    ).andThen((res) => {
+      if (res.status === "NOT_FOUND") {
+        return errAsync({
+          code: "USER_NOT_FOUND",
+          message: "User tidak ditemukan",
+        } as const);
+      }
+      if (res.status === "NOT_VERIFIED") {
+        return errAsync({
+          code: "NOT_VERIFIED",
+          message: "User belum terverifikasi, tidak bisa dijadikan PJ",
+        } as const);
+      }
+      return okAsync({ success: true });
     });
   },
 

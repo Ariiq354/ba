@@ -38,7 +38,22 @@ function handleVerify(user: UserItem) {
   });
 }
 
-const columns = computed(() => getUserColumns(handleVerify));
+function handleSetPj(user: UserItem, isPj: boolean) {
+  openModal(ModalConfirmDelete, {
+    path: "/api/v1/user/pj",
+    method: "POST",
+    body: { userId: user.id, isPj },
+    refresh,
+    title: isPj ? "Tetapkan Penanggung Jawab" : "Cabut Penanggung Jawab",
+    description: isPj
+      ? `Apakah Anda yakin ingin menjadikan "${user.name}" sebagai Penanggung Jawab${user.namaKelompok ? ` untuk kelompok "${user.namaKelompok}"` : ""}?`
+      : `Apakah Anda yakin ingin mencabut status Penanggung Jawab dari "${user.name}"?`,
+    confirmText: isPj ? "Tetapkan PJ" : "Cabut PJ",
+    confirmColor: isPj ? "primary" : "warning",
+  });
+}
+
+const columns = computed(() => getUserColumns(handleVerify, handleSetPj));
 </script>
 
 <template>

@@ -1,5 +1,5 @@
 import type { TableColumn } from "@nuxt/ui";
-import { UBadge, UButton, UIcon } from "#components";
+import { UBadge, UButton } from "#components";
 import { formatDate } from "~/utils/formatter";
 
 export interface UserItem {
@@ -23,7 +23,10 @@ export const statusOptions = [
   { label: "Terverifikasi", value: "verified" },
 ];
 
-export function getUserColumns(onVerify: (user: UserItem) => void): TableColumn<UserItem>[] {
+export function getUserColumns(
+  onVerify: (user: UserItem) => void,
+  onSetPj: (user: UserItem, isPj: boolean) => void,
+): TableColumn<UserItem>[] {
   return [
     {
       header: "Nama",
@@ -50,6 +53,44 @@ export function getUserColumns(onVerify: (user: UserItem) => void): TableColumn<
       header: "No. Anggota",
       accessorKey: "noAnggota",
       cell: ({ row }) => row.original.noAnggota || "-",
+    },
+    {
+      header: "Role",
+      accessorKey: "role",
+      cell: ({ row }) => {
+        const role = row.original.role;
+        if (role === "admin") {
+          return h(
+            UBadge,
+            {
+              color: "primary",
+              variant: "subtle",
+              size: "sm",
+            },
+            () => "Admin",
+          );
+        }
+        if (role === "pj") {
+          return h(
+            UBadge,
+            {
+              color: "warning",
+              variant: "subtle",
+              size: "sm",
+            },
+            () => "PJ",
+          );
+        }
+        return h(
+          UBadge,
+          {
+            color: "neutral",
+            variant: "subtle",
+            size: "sm",
+          },
+          () => "User",
+        );
+      },
     },
     {
       header: "Tanggal Daftar",
@@ -88,10 +129,33 @@ export function getUserColumns(onVerify: (user: UserItem) => void): TableColumn<
             () => "Verifikasi",
           );
         }
-        return h("span", { class: "text-xs text-gray-400 font-medium flex items-center gap-1" }, [
-          h(UIcon, { name: "i-tabler-check", class: "text-green-500 shrink-0" }),
-          "Tervalidasi",
-        ]);
+
+        const isPj = row.original.role === "pj";
+        if (isPj) {
+          return h(
+            UButton,
+            {
+              size: "xs",
+              color: "warning",
+              variant: "soft",
+              icon: "i-tabler-user-x",
+              onClick: () => onSetPj(row.original, false),
+            },
+            () => "Cabut PJ",
+          );
+        }
+
+        return h(
+          UButton,
+          {
+            size: "xs",
+            color: "info",
+            variant: "soft",
+            icon: "i-tabler-user-star",
+            onClick: () => onSetPj(row.original, true),
+          },
+          () => "Jadikan PJ",
+        );
       },
     },
   ];

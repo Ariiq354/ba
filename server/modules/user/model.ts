@@ -24,6 +24,13 @@ export const verifyUserSchema = z.object({
 
 export type VerifyUserSchema = z.infer<typeof verifyUserSchema>;
 
+export const setGroupPjSchema = z.object({
+  userId: z.number().int().positive(),
+  isPj: z.boolean(),
+});
+
+export type SetGroupPjSchema = z.infer<typeof setGroupPjSchema>;
+
 export const getUsersQuerySchema = z.object({
   page: z.coerce.number().default(1),
   limit: z.coerce.number().default(10),
