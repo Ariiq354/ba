@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { CalendarDate } from "@internationalized/date";
 import type { FormDetailLine } from "../model";
 import { getLocalTimeZone, today } from "@internationalized/date";
+import InputCalendar from "~/components/input/InputCalendar.vue";
 import { useToastError, useToastSuccess } from "~/composables/toast";
 import { formatRupiah } from "../model";
 
@@ -11,7 +11,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ close: [] }>();
 
-const tanggalTransaksi = ref<CalendarDate>(today(getLocalTimeZone()));
+const tanggalTransaksi = shallowRef(today(getLocalTimeZone()));
 const keterangan = ref("");
 
 const debitItems = ref<FormDetailLine[]>([{ akunId: undefined, nominal: 0 }]);
