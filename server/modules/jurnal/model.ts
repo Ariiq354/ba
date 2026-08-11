@@ -18,7 +18,6 @@ export type JurnalDetailItemSchema = z.infer<typeof jurnalDetailItemSchema>;
 
 export const createJurnalSchema = z
   .object({
-    kodeTransaksi: z.string().optional(),
     tanggalTransaksi: z.string().min(1, "Tanggal transaksi wajib diisi"),
     keterangan: z.string().optional(),
     details: z

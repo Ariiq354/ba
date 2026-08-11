@@ -12,7 +12,6 @@ const emit = defineEmits<{ close: [] }>();
 const todayStr = new Date().toISOString().substring(0, 10);
 
 const tanggalTransaksi = ref(todayStr);
-const kodeTransaksi = ref("");
 const keterangan = ref("");
 
 const debitItems = ref<FormDetailLine[]>([{ akunId: undefined, nominal: 0 }]);
@@ -110,7 +109,6 @@ async function handleSubmit() {
 
   const payload = {
     tanggalTransaksi: tanggalTransaksi.value,
-    kodeTransaksi: kodeTransaksi.value.trim() || undefined,
     keterangan: keterangan.value.trim() || undefined,
     details: detailsPayload,
   };
@@ -155,16 +153,7 @@ async function handleSubmit() {
             />
           </UFormField>
 
-          <UFormField label="Kode Transaksi (No. Bukti)">
-            <UInput
-              v-model="kodeTransaksi"
-              placeholder="Otomatis TRX-YYYYMM-XXXX"
-              class="w-full"
-              :disabled="isLoading"
-            />
-          </UFormField>
-
-          <UFormField label="Keterangan / Catatan" class="sm:col-span-3">
+          <UFormField label="Keterangan / Catatan" class="sm:col-span-2">
             <UTextarea
               v-model="keterangan"
               placeholder="Catatan penjelas transaksi (misal: Pembayaran sewa kantor bulan Agustus)..."

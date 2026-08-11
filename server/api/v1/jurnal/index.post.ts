@@ -12,12 +12,6 @@ export default defineEventHandler(async (event) => {
     data => data,
     (err) => {
       switch (err.code) {
-        case "KODE_TRANSAKSI_EXISTS":
-          throw createError({
-            statusCode: 400,
-            statusMessage: err.message,
-          });
-
         case "DATABASE_ERROR":
           console.error(err.cause);
           throw createError({

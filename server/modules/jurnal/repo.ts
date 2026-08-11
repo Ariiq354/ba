@@ -24,10 +24,12 @@ export interface FlatJurnalDetailRow {
 }
 
 export const JurnalRepo = {
-  generateNextKodeTransaksi() {
-    const now = new Date();
-    const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const prefix = `TRX-${yearMonth}-`;
+  generateNextKodeTransaksi(tanggalTransaksi?: string) {
+    const dateObj = tanggalTransaksi ? new Date(tanggalTransaksi) : new Date();
+    const dateStr = Number.isNaN(dateObj.getTime())
+      ? new Date().toISOString().substring(0, 10).replace(/-/g, "")
+      : dateObj.toISOString().substring(0, 10).replace(/-/g, "");
+    const prefix = `TRX-${dateStr}-`;
 
     return ResultAsync.fromPromise(
       db
@@ -39,13 +41,13 @@ export const JurnalRepo = {
       cause => ({ code: "DATABASE_ERROR", cause } as const),
     ).map((rows) => {
       if (!rows.length || !rows[0]?.kodeTransaksi) {
-        return `${prefix}0001`;
+        return `${prefix}001`;
       }
       const lastCode = rows[0].kodeTransaksi;
       const parts = lastCode.split("-");
       const seqStr = parts[parts.length - 1];
       const seqNum = Number.parseInt(seqStr || "0", 10);
-      const nextSeq = String(seqNum + 1).padStart(4, "0");
+      const nextSeq = String(seqNum + 1).padStart(3, "0");
       return `${prefix}${nextSeq}`;
     });
   },
@@ -106,16 +108,12 @@ export const JurnalRepo = {
   },
 
   create(data: CreateJurnalSchema, userId: number, generatedKode: string) {
-    const kode = data.kodeTransaksi && data.kodeTransaksi.trim() !== ""
-      ? data.kodeTransaksi.trim()
-      : generatedKode;
-
     return ResultAsync.fromPromise(
       db.transaction(async (tx) => {
         const [header] = await tx
           .insert(jurnal)
           .values({
-            kodeTransaksi: kode,
+            kodeTransaksi: generatedKode,
             tanggalTransaksi: data.tanggalTransaksi,
             keterangan: data.keterangan || null,
             userId,

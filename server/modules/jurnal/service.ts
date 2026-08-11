@@ -20,22 +20,7 @@ export const JurnalService = {
   },
 
   createJurnal(data: CreateJurnalSchema, userId: number) {
-    const customCode = data.kodeTransaksi?.trim();
-
-    if (customCode) {
-      return JurnalRepo.findByKodeTransaksi(customCode).andThen((existing) => {
-        if (existing) {
-          return errAsync({
-            code: "KODE_TRANSAKSI_EXISTS",
-            message: "Kode transaksi sudah digunakan",
-          } as const);
-        }
-
-        return JurnalRepo.create(data, userId, customCode);
-      });
-    }
-
-    return JurnalRepo.generateNextKodeTransaksi().andThen((autoCode) => {
+    return JurnalRepo.generateNextKodeTransaksi(data.tanggalTransaksi).andThen((autoCode) => {
       return JurnalRepo.create(data, userId, autoCode);
     });
   },
