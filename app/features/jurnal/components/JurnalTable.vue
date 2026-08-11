@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DropdownMenuItem } from "@nuxt/ui";
+import type { DropdownMenuItem, TableColumn } from "@nuxt/ui";
 import type { FlatJurnalRow } from "../model";
 import { formatRupiah, formatTanggalIndo } from "../model";
 
@@ -23,13 +23,15 @@ const pageModel = computed({
   set: (val: number) => emit("update:page", val),
 });
 
-const processedRows = computed(() => {
+export interface ProcessedFlatJurnalRow extends FlatJurnalRow {
+  isGroupStart: boolean;
+  rowspanCount: number;
+  groupIndex: number;
+}
+
+const processedRows = computed<ProcessedFlatJurnalRow[]>(() => {
   const rows = props.data || [];
-  const result: (FlatJurnalRow & {
-    isGroupStart: boolean;
-    rowspanCount: number;
-    groupIndex: number;
-  })[] = [];
+  const result: ProcessedFlatJurnalRow[] = [];
 
   let currentJurnalId: number | null = null;
   let currentGroupIndex = 0;
@@ -119,128 +121,198 @@ function getActionItems(row: FlatJurnalRow): DropdownMenuItem[] {
     },
   ];
 }
+
+const columns = computed<TableColumn<ProcessedFlatJurnalRow>[]>(() => [
+  {
+    accessorKey: "tanggalTransaksi",
+    header: "Tanggal",
+    meta: {
+      rowspan: {
+        td: (cell: any) => (cell.row.original.isGroupStart ? cell.row.original.rowspanCount : undefined),
+      },
+      class: {
+        td: (cell: any) =>
+          cell.row.original.isGroupStart
+            ? "font-medium text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-800 align-top py-3 w-32"
+            : "hidden",
+      },
+    },
+  },
+  {
+    accessorKey: "kodeTransaksi",
+    header: "No. Bukti / Kode",
+    meta: {
+      rowspan: {
+        td: (cell: any) => (cell.row.original.isGroupStart ? cell.row.original.rowspanCount : undefined),
+      },
+      class: {
+        td: (cell: any) =>
+          cell.row.original.isGroupStart
+            ? "font-mono text-xs font-semibold text-primary-600 dark:text-primary-400 border-r border-gray-200 dark:border-gray-800 align-top py-3 w-40"
+            : "hidden",
+      },
+    },
+  },
+  {
+    accessorKey: "keterangan",
+    header: "Keterangan",
+    meta: {
+      rowspan: {
+        td: (cell: any) => (cell.row.original.isGroupStart ? cell.row.original.rowspanCount : undefined),
+      },
+      class: {
+        td: (cell: any) =>
+          cell.row.original.isGroupStart
+            ? "text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-800 text-xs align-top py-3 min-w-48"
+            : "hidden",
+      },
+    },
+  },
+  {
+    accessorKey: "namaAkun",
+    header: "Akun Perkiraan",
+    meta: {
+      class: {
+        td: "font-medium text-gray-800 dark:text-gray-200 py-2.5 min-w-48",
+      },
+    },
+  },
+  {
+    accessorKey: "debit",
+    header: "Debit (IDR)",
+    meta: {
+      class: {
+        th: "text-right w-36",
+        td: "text-right font-mono text-sm py-2.5 w-36",
+      },
+    },
+  },
+  {
+    accessorKey: "kredit",
+    header: "Kredit (IDR)",
+    meta: {
+      class: {
+        th: "text-right w-36",
+        td: "text-right font-mono text-sm py-2.5 w-36",
+      },
+    },
+  },
+  {
+    accessorKey: "userName",
+    header: "Operator",
+    meta: {
+      rowspan: {
+        td: (cell: any) => (cell.row.original.isGroupStart ? cell.row.original.rowspanCount : undefined),
+      },
+      class: {
+        td: (cell: any) =>
+          cell.row.original.isGroupStart
+            ? "text-xs text-gray-500 border-l border-gray-200 dark:border-gray-800 align-top py-3 w-32"
+            : "hidden",
+      },
+    },
+  },
+  {
+    id: "actions",
+    header: "Aksi",
+    meta: {
+      rowspan: {
+        td: (cell: any) => (cell.row.original.isGroupStart ? cell.row.original.rowspanCount : undefined),
+      },
+      class: {
+        th: "text-center w-16",
+        td: (cell: any) =>
+          cell.row.original.isGroupStart
+            ? "text-center border-l border-gray-200 dark:border-gray-800 align-top py-3 w-16"
+            : "hidden",
+      },
+    },
+  },
+]);
+
+const tableMeta = computed(() => ({
+  class: {
+    tr: (row: any) =>
+      [
+        row.original.isGroupStart ? "border-t-2 border-gray-300 dark:border-gray-700" : "",
+        row.original.groupIndex % 2 === 0
+          ? "bg-white dark:bg-gray-950 hover:bg-gray-50/60 dark:hover:bg-gray-900/40"
+          : "bg-gray-50/40 dark:bg-gray-900/20 hover:bg-gray-100/50 dark:hover:bg-gray-900/50",
+      ]
+        .filter(Boolean)
+        .join(" "),
+  },
+}));
 </script>
 
 <template>
   <div class="w-full space-y-4">
-    <div class="border border-gray-200 dark:border-gray-800 rounded-lg overflow-x-auto shadow-sm">
-      <table class="w-full text-sm text-left border-collapse">
-        <thead class="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-          <tr>
-            <th class="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 w-32">Tanggal</th>
-            <th class="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 w-40">No. Bukti / Kode</th>
-            <th class="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 min-w-48">Keterangan</th>
-            <th class="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 min-w-48">Akun Perkiraan</th>
-            <th class="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 w-36 text-right">Debit (IDR)</th>
-            <th class="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 w-36 text-right">Kredit (IDR)</th>
-            <th class="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 w-32">Operator</th>
-            <th class="px-3 py-3 font-semibold text-gray-700 dark:text-gray-300 w-16 text-center">Aksi</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200/60 dark:divide-gray-800/60">
-          <template v-if="loading">
-            <tr>
-              <td colspan="8" class="px-4 py-8 text-center text-gray-500">
-                <UIcon name="i-tabler-loader-2" class="w-6 h-6 animate-spin inline-block mr-2" />
-                Memuat data jurnal transaksi...
-              </td>
-            </tr>
-          </template>
+    <UTable
+      :data="processedRows"
+      :columns="columns"
+      :loading="loading"
+      :meta="tableMeta"
+      class="border-accented rounded-lg border overflow-x-auto"
+      :ui="{
+        th: 'text-muted font-semibold bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800',
+        td: 'text-highlighted',
+      }"
+    >
+      <!-- Custom slots for cells -->
+      <template #tanggalTransaksi-cell="{ row }">
+        {{ formatTanggalIndo(row.original.tanggalTransaksi) }}
+      </template>
 
-          <template v-else-if="!processedRows.length">
-            <tr>
-              <td colspan="8" class="px-4 py-12 text-center text-gray-500">
-                <UIcon name="i-tabler-receipt-off" class="w-10 h-10 mx-auto text-gray-400 mb-2" />
-                Belum ada data transaksi jurnal.
-              </td>
-            </tr>
-          </template>
+      <template #kodeTransaksi-cell="{ row }">
+        {{ row.original.kodeTransaksi }}
+      </template>
 
-          <template v-else>
-            <tr
-              v-for="row in processedRows"
-              :key="`dtl-${row.id}`"
-              :class="[
-                row.isGroupStart ? 'border-t-2 border-gray-300 dark:border-gray-700' : '',
-                row.groupIndex % 2 === 0
-                  ? 'bg-white dark:bg-gray-950 hover:bg-gray-50/60 dark:hover:bg-gray-900/40'
-                  : 'bg-gray-50/40 dark:bg-gray-900/20 hover:bg-gray-100/50 dark:hover:bg-gray-900/50',
-              ]"
-            >
-              <!-- Cell Merging Header Columns (Rowspan) -->
-              <td
-                v-if="row.isGroupStart"
-                :rowspan="row.rowspanCount"
-                class="px-4 py-3 align-top font-medium text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-800"
-              >
-                {{ formatTanggalIndo(row.tanggalTransaksi) }}
-              </td>
+      <template #keterangan-cell="{ row }">
+        {{ row.original.keterangan || "-" }}
+      </template>
 
-              <td
-                v-if="row.isGroupStart"
-                :rowspan="row.rowspanCount"
-                class="px-4 py-3 align-top font-mono text-xs font-semibold text-primary-600 dark:text-primary-400 border-r border-gray-200 dark:border-gray-800"
-              >
-                {{ row.kodeTransaksi }}
-              </td>
+      <template #namaAkun-cell="{ row }">
+        <span class="font-mono text-xs text-gray-500 mr-2">[{{ row.original.kodeAkun }}]</span>
+        <span>{{ row.original.namaAkun }}</span>
+      </template>
 
-              <td
-                v-if="row.isGroupStart"
-                :rowspan="row.rowspanCount"
-                class="px-4 py-3 align-top text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-800 text-xs"
-              >
-                {{ row.keterangan || '-' }}
-              </td>
+      <template #debit-cell="{ row }">
+        <span v-if="row.original.debit > 0" class="text-gray-900 dark:text-white font-medium">
+          {{ formatRupiah(row.original.debit) }}
+        </span>
+        <span v-else class="text-gray-400 dark:text-gray-600">-</span>
+      </template>
 
-              <!-- Per-detail Columns -->
-              <td class="px-4 py-2.5 font-medium text-gray-800 dark:text-gray-200">
-                <span class="font-mono text-xs text-gray-500 mr-2">[{{ row.kodeAkun }}]</span>
-                <span>{{ row.namaAkun }}</span>
-              </td>
+      <template #kredit-cell="{ row }">
+        <span v-if="row.original.kredit > 0" class="text-gray-900 dark:text-white font-medium">
+          {{ formatRupiah(row.original.kredit) }}
+        </span>
+        <span v-else class="text-gray-400 dark:text-gray-600">-</span>
+      </template>
 
-              <td class="px-4 py-2.5 text-right font-mono text-sm">
-                <span v-if="row.debit > 0" class="text-gray-900 dark:text-white font-medium">
-                  {{ formatRupiah(row.debit) }}
-                </span>
-                <span v-else class="text-gray-400 dark:text-gray-600">-</span>
-              </td>
+      <template #userName-cell="{ row }">
+        {{ row.original.userName || "-" }}
+      </template>
 
-              <td class="px-4 py-2.5 text-right font-mono text-sm">
-                <span v-if="row.kredit > 0" class="text-gray-900 dark:text-white font-medium">
-                  {{ formatRupiah(row.kredit) }}
-                </span>
-                <span v-else class="text-gray-400 dark:text-gray-600">-</span>
-              </td>
+      <template #actions-cell="{ row }">
+        <UDropdownMenu :items="getActionItems(row.original)">
+          <UButton
+            icon="i-tabler-dots"
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            aria-label="Aksi Transaksi"
+          />
+        </UDropdownMenu>
+      </template>
 
-              <!-- Cell Merging Operator & Action Columns (Rowspan) -->
-              <td
-                v-if="row.isGroupStart"
-                :rowspan="row.rowspanCount"
-                class="px-4 py-3 align-top text-xs text-gray-500 border-l border-gray-200 dark:border-gray-800"
-              >
-                {{ row.userName || '-' }}
-              </td>
-
-              <td
-                v-if="row.isGroupStart"
-                :rowspan="row.rowspanCount"
-                class="px-3 py-3 align-top text-center border-l border-gray-200 dark:border-gray-800"
-              >
-                <UDropdownMenu :items="getActionItems(row)">
-                  <UButton
-                    icon="i-tabler-dots"
-                    color="neutral"
-                    variant="ghost"
-                    size="xs"
-                    aria-label="Aksi Transaksi"
-                  />
-                </UDropdownMenu>
-              </td>
-            </tr>
-          </template>
-        </tbody>
-      </table>
-    </div>
+      <template #empty>
+        <div class="py-12 text-center text-gray-500">
+          <UIcon name="i-tabler-receipt-off" class="w-10 h-10 mx-auto text-gray-400 mb-2" />
+          <p>Belum ada data transaksi jurnal.</p>
+        </div>
+      </template>
+    </UTable>
 
     <!-- Pagination Footer -->
     <div v-if="totalHeaders && totalHeaders > 0" class="mt-4 flex items-center justify-between">
