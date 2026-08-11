@@ -130,6 +130,10 @@ export function getUserColumns(
           );
         }
 
+        if (row.original.role === "admin") {
+          return h("span", { class: "text-xs text-gray-400 font-medium" }, "-");
+        }
+
         const isPj = row.original.role === "pj";
         if (isPj) {
           return h(

@@ -41,4 +41,4 @@ This repository handles the core system for the member financial portal (Koperas
   Unique member identification string assigned upon account verification. Formatted as `{kodeKelompok}-{MMYY}-{nomor}` (e.g. `KD-0126-0001`), where `nomor` is a 4-digit zero-padded sequence that resets monthly per `kelompok`.
 
 - **Penanggung Jawab (PJ)**
-  A verified member (`banned: false`) assigned by an Administrator to oversee their designated group (`idKelompok`). When assigned, the user's `role` changes to `"pj"` and a record is created in `kelompok_penanggung_jawab`. Revoking PJ status returns the `role` to `"user"` and removes the group mapping.
+  A verified member (`banned: false`, non-admin) assigned by an Administrator to oversee their designated group (`idKelompok`). Users with `role: "admin"` are superusers and cannot be set as PJ. When assigned, the user's `role` changes to `"pj"` and a record is created in `kelompok_penanggung_jawab`. Revoking PJ status returns the `role` to `"user"` and removes the group mapping.

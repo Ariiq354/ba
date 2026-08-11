@@ -175,6 +175,7 @@ export const UserRepo = {
         const targetUser = await tx
           .select({
             id: user.id,
+            role: user.role,
             banned: user.banned,
             idKelompok: user.idKelompok,
           })
@@ -185,6 +186,10 @@ export const UserRepo = {
 
         if (!targetUser) {
           return { status: "NOT_FOUND" } as const;
+        }
+
+        if (targetUser.role === "admin") {
+          return { status: "ADMIN_USER" } as const;
         }
 
         if (targetUser.banned) {
@@ -229,6 +234,12 @@ export const UserRepo = {
         return errAsync({
           code: "USER_NOT_FOUND",
           message: "User tidak ditemukan",
+        } as const);
+      }
+      if (res.status === "ADMIN_USER") {
+        return errAsync({
+          code: "ADMIN_USER",
+          message: "User dengan role Admin tidak dapat diubah menjadi PJ",
         } as const);
       }
       if (res.status === "NOT_VERIFIED") {

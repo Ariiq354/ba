@@ -18,6 +18,7 @@ export default defineEventHandler(async (event) => {
             statusMessage: err.message,
           });
 
+        case "ADMIN_USER":
         case "NOT_VERIFIED":
           throw createError({
             statusCode: 400,
