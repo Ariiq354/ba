@@ -18,7 +18,7 @@ const tanggal = defineModel<CalendarDate>();
     <UButton
       color="neutral"
       variant="outline"
-      icon="i-lucide-calendar"
+      icon="i-tabler-calendar"
       :label="tanggal ? df.format(tanggal.toDate(getLocalTimeZone())) : 'Pilih Tanggal'"
       :disabled="disabled"
       class="w-full justify-start"
