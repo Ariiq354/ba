@@ -25,6 +25,14 @@ export const akunSchema = z.object({
 
 export type AkunFormSchema = z.infer<typeof akunSchema>;
 
+export const kategoriFilterOptions = [
+  { label: "Semua Kategori", value: "all" },
+  { label: "Aktiva", value: "aktiva" },
+  { label: "Pasiva", value: "pasiva" },
+  { label: "Pendapatan", value: "pendapatan" },
+  { label: "Biaya", value: "biaya" },
+];
+
 const kategoriLabels: Record<KategoriAkun, string> = {
   aktiva: "Aktiva",
   pasiva: "Pasiva",

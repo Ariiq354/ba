@@ -1,5 +1,4 @@
-import type { PaginationSchema } from "~~/server/utils/schema";
-import type { CreateAkunSchema, UpdateAkunSchema } from "./model";
+import type { CreateAkunSchema, GetAkunQuerySchema, UpdateAkunSchema } from "./model";
 import { errAsync } from "neverthrow";
 import { MasterAkunRepo } from "./repo";
 
@@ -16,7 +15,7 @@ export const MasterAkunService = {
     });
   },
 
-  getPaginatedAkun(query: PaginationSchema) {
+  getPaginatedAkun(query: GetAkunQuerySchema) {
     return MasterAkunRepo.getPaginated(query);
   },
 

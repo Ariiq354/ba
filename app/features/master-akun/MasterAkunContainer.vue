@@ -1,15 +1,29 @@
 <script setup lang="ts">
 import type { AkunItem } from "./model";
+import InputSearch from "~/components/input/InputSearch.vue";
 import ModalConfirmDelete from "~/components/modal/ModalConfirmDelete.vue";
 import DataTable from "~/components/table/DataTable.vue";
 import { openModal } from "~/composables/modal";
 import ModalAkunForm from "./components/ModalAkunForm.vue";
-import { akunColumns } from "./model";
+import { akunColumns, kategoriFilterOptions } from "./model";
 
 const page = ref(1);
+const search = ref("");
+const kategori = ref("all");
+
+const queryParams = computed(() => ({
+  page: page.value,
+  limit: 10,
+  search: search.value || undefined,
+  kategori: kategori.value,
+}));
 
 const { data, pending, refresh } = await useFetch("/api/v1/master/akun", {
-  query: { page },
+  query: queryParams,
+});
+
+watch([search, kategori], () => {
+  page.value = 1;
 });
 
 function handleCreate() {
@@ -57,6 +71,23 @@ function handleDelete(ids: number[]) {
         >
           Tambah Akun
         </UButton>
+      </div>
+    </div>
+
+    <!-- Filter & Search Bar -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+      <div class="w-full sm:w-80">
+        <InputSearch v-model="search" placeholder="Cari kode or nama akun..." />
+      </div>
+
+      <div class="flex items-center gap-2">
+        <USelect
+          v-model="kategori"
+          :items="kategoriFilterOptions"
+          value-attribute="value"
+          option-attribute="label"
+          class="w-48"
+        />
       </div>
     </div>
 

@@ -30,7 +30,7 @@ This repository handles the core system for the member financial portal (Koperas
   Configuration tiers for financing margin percentages and contract fees (`biayaAkad`), parametrized by nominal financing bounds (`minNominal`, `maxNominal`), yearly margin percentage (`persenMarginTahun`), and collateral status (`jaminan`: `ADA` | `TIDAK_ADA`).
 
 - **Master Akun (Daftar Akun / Chart of Accounts)**
-  Master ledger accounts for financial transactions (`kodeAkun`, `namaAkun`, `kategori`, `normalBalance`, `isActive`). Categories include `aktiva`, `pasiva`, `pendapatan`, and `biaya` with `debit` or `kredit` normal balance position.
+  Master ledger accounts for financial transactions (`kodeAkun`, `namaAkun`, `kategori`, `normalBalance`, `isActive`). Categories include `aktiva`, `pasiva`, `pendapatan`, and `biaya` with `debit` or `kredit` normal balance position. Supports filtering by category and case-insensitive search on account code and name.
 
 ### Member Management & Lifecycle
 

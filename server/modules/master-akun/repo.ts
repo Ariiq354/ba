@@ -1,6 +1,5 @@
-import type { PaginationSchema } from "~~/server/utils/schema";
-import type { CreateAkunSchema, UpdateAkunSchema } from "./model";
-import { asc, count, eq, inArray } from "drizzle-orm";
+import type { CreateAkunSchema, GetAkunQuerySchema, UpdateAkunSchema } from "./model";
+import { and, asc, count, eq, ilike, inArray, or } from "drizzle-orm";
 import { ResultAsync } from "neverthrow";
 import { db } from "~~/server/database";
 import { akun } from "~~/server/database/schema/akun";
@@ -27,20 +26,39 @@ export const MasterAkunRepo = {
     ).map(rows => rows[0]);
   },
 
-  getPaginated(query: PaginationSchema) {
+  getPaginated(query: GetAkunQuerySchema) {
     const offset = (query.page - 1) * query.limit;
+    const conditions = [];
+
+    if (query.kategori && query.kategori !== "all") {
+      conditions.push(eq(akun.kategori, query.kategori));
+    }
+
+    if (query.search) {
+      const searchPattern = `%${query.search}%`;
+      conditions.push(
+        or(
+          ilike(akun.kodeAkun, searchPattern),
+          ilike(akun.namaAkun, searchPattern),
+        ),
+      );
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     return ResultAsync.fromPromise(
       Promise.all([
         db
           .select()
           .from(akun)
+          .where(whereClause)
           .orderBy(asc(akun.kodeAkun))
           .limit(query.limit)
           .offset(offset),
         db
           .select({ total: count() })
           .from(akun)
+          .where(whereClause)
           .then(rows => rows[0]?.total ?? 0),
       ]).then(([items, total]) => ({
         items,
