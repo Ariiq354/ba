@@ -1,5 +1,4 @@
 import {
-  bigint,
   date,
   index,
   integer,
@@ -28,8 +27,8 @@ export const jurnalDetail = snakeCase.table("jurnal_detail", {
     onDelete: "cascade",
   }),
   akunId: integer().notNull().references(() => akun.id),
-  debit: bigint({ mode: "number" }).notNull().default(0),
-  kredit: bigint({ mode: "number" }).notNull().default(0),
+  debit: integer().notNull().default(0),
+  kredit: integer().notNull().default(0),
 }, table => [
   index("jurnal_detail_jurnal_id_idx").on(table.jurnalId),
   index("jurnal_detail_akun_id_idx").on(table.akunId),

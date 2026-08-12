@@ -1,4 +1,4 @@
-import { bigint, date, index, integer, pgEnum, snakeCase, text, timestamp } from "drizzle-orm/pg-core";
+import { date, index, integer, pgEnum, snakeCase, text, timestamp } from "drizzle-orm/pg-core";
 import { akun } from "./akun";
 import { user } from "./auth";
 import { createdUpdated } from "./common";
@@ -10,8 +10,8 @@ export const jenisPemindahbukuanEnum = pgEnum("jenis_pemindahbukuan", ["saham_ke
 export const saldoSimpanan = snakeCase.table("saldo_simpanan", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
   userId: integer().notNull().references(() => user.id, { onDelete: "cascade" }).unique(),
-  saldoTabungan: bigint({ mode: "number" }).notNull().default(0),
-  saldoSaham: bigint({ mode: "number" }).notNull().default(0),
+  saldoTabungan: integer().notNull().default(0),
+  saldoSaham: integer().notNull().default(0),
   ...createdUpdated,
 });
 
@@ -21,8 +21,9 @@ export const mutasiSimpanan = snakeCase.table("mutasi_simpanan", {
   userId: integer().notNull().references(() => user.id),
   akunId: integer().notNull().references(() => akun.id),
   jenisTransaksi: jenisTransaksiEnum().notNull(),
-  nilaiTransaksi: bigint({ mode: "number" }).notNull(),
-  saldoSetelahTransaksi: bigint({ mode: "number" }).notNull(),
+  nilaiTransaksi: integer().notNull(),
+  agioSaham: integer().notNull().default(0),
+  saldoSetelahTransaksi: integer().notNull(),
   tanggalTransaksi: date().notNull(),
   statusApproved: approvedStatusEnum().notNull().default("pending"),
   alasanPenolakan: text(),
@@ -44,7 +45,7 @@ export const pemindahbukuan = snakeCase.table("pemindahbukuan", {
   akunIdSumber: integer().notNull().references(() => akun.id),
   idUserTujuan: integer().notNull().references(() => user.id),
   akunIdTujuan: integer().notNull().references(() => akun.id),
-  nominal: bigint({ mode: "number" }).notNull(),
+  nominal: integer().notNull(),
   tipePemindahbukuan: jenisPemindahbukuanEnum().notNull(),
   tanggalTransaksi: date().notNull(),
   statusApproved: approvedStatusEnum().notNull().default("pending"),
