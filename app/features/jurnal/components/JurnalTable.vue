@@ -37,7 +37,8 @@ const processedRows = computed<ProcessedFlatJurnalRow[]>(() => {
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    if (!row) continue;
+    if (!row)
+      continue;
 
     if (row.jurnalId !== currentJurnalId) {
       if (currentJurnalId !== null) {
@@ -50,7 +51,8 @@ const processedRows = computed<ProcessedFlatJurnalRow[]>(() => {
         const checkRow = rows[j];
         if (checkRow && checkRow.jurnalId === currentJurnalId) {
           count++;
-        } else {
+        }
+        else {
           break;
         }
       }
@@ -74,7 +76,8 @@ const processedRows = computed<ProcessedFlatJurnalRow[]>(() => {
         rowspanCount: count,
         groupIndex: currentGroupIndex,
       });
-    } else {
+    }
+    else {
       result.push({
         id: row.id,
         jurnalId: row.jurnalId,

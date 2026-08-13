@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import type { TableColumn } from "@nuxt/ui";
 import type { MutasiItem } from "../model";
+import { formatDateShort, formatRupiah } from "~/utils/formatter";
+import { approvalMutasiColumns } from "../model";
 
-const props = defineProps<{
+defineProps<{
   data?: MutasiItem[];
   loading?: boolean;
   total?: number;
@@ -15,41 +16,13 @@ const emit = defineEmits<{
 }>();
 
 const page = defineModel<number>("page", { default: 1 });
-
-function formatRupiah(val?: number) {
-  if (val === undefined || val === null) return "Rp 0";
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(val);
-}
-
-function formatDate(dateStr?: string) {
-  if (!dateStr) return "-";
-  const [year, month, day] = dateStr.split("-");
-  if (!year || !month || !day) return dateStr;
-  return `${day}/${month}/${year}`;
-}
-
-const columns: TableColumn<MutasiItem>[] = [
-  { accessorKey: "kodeTransaksi", header: "Kode Transaksi" },
-  { accessorKey: "userName", header: "Anggota / User" },
-  { accessorKey: "tanggalTransaksi", header: "Tanggal" },
-  { accessorKey: "jenisTransaksi", header: "Jenis" },
-  { accessorKey: "namaAkun", header: "Pembayaran" },
-  { accessorKey: "nilaiTransaksi", header: "Nominal" },
-  { accessorKey: "statusApproved", header: "Status" },
-  { accessorKey: "keterangan", header: "Keterangan" },
-  { id: "actions", header: "Aksi Persetujuan" },
-];
 </script>
 
 <template>
   <div class="space-y-4">
     <UTable
       :data="data || []"
-      :columns="columns"
+      :columns="approvalMutasiColumns"
       :loading="loading"
       class="w-full text-sm"
     >
@@ -75,7 +48,7 @@ const columns: TableColumn<MutasiItem>[] = [
       <!-- Tanggal Column -->
       <template #tanggalTransaksi-cell="{ row }">
         <span class="text-xs text-gray-600 dark:text-gray-400">
-          {{ formatDate(row.original.tanggalTransaksi) }}
+          {{ formatDateShort(row.original.tanggalTransaksi) }}
         </span>
       </template>
 

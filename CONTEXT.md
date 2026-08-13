@@ -57,7 +57,11 @@ This repository handles the core system for the member financial portal (Koperas
 - **Persetujuan Mutasi (Mutation Approval Flow)**
   Administrator verification process for pending mutasi transactions. Approval updates `mutasiSimpanan` status to `approved`, updates user's `saldoSimpanan` (`saldoTabungan` or `saldoSaham`), records the new balance in `saldoSetelahTransaksi`, and generates corresponding double-entry records in `jurnal` and `jurnalDetail`. Rejection by admin updates status to `rejected` with mandatory `alasanPenolakan` without modifying balances or journal entries.
 
+## Feature Module Architecture & Conventions (`app/features/*`)
 
+See [`docs/adr/0001-feature-module-architecture.md`](file:///home/danubis/Projects/ba/docs/adr/0001-feature-module-architecture.md) for full details. All agents modifying or adding feature code must adhere to:
 
-
+1. **Utility Functions (`app/utils/`)**: All formatters (`formatRupiah`, `formatDate`, `formatDateShort`) belong in `app/utils/`. Do NOT define local inline formatters inside `.vue` components.
+2. **Type Inference & Component Props**: Do NOT pass explicit generic parameters to `useFetch` (Nuxt auto-infers server route types). Define component `props` types inside the component `.vue` file itself, not in `model.ts`.
+3. **`model.ts` Responsibilities**: Place all `TableColumn<T>[]` definitions and Zod schemas (`z.object({...})` & `z.infer<typeof ...>`) in `app/features/<feature-name>/model.ts`.
 

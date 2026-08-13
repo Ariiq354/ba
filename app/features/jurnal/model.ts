@@ -29,9 +29,11 @@ export function formatRupiah(amount: number): string {
 }
 
 export function formatTanggalIndo(dateStr: string): string {
-  if (!dateStr) return "-";
+  if (!dateStr)
+    return "-";
   const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return dateStr;
+  if (Number.isNaN(date.getTime()))
+    return dateStr;
   return new Intl.DateTimeFormat("id-ID", {
     day: "2-digit",
     month: "short",

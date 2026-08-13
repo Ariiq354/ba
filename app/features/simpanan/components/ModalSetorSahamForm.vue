@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useToastError, useToastSuccess } from "~/composables/toast";
-import type { SahamPriceResponse } from "../model";
-import { AKTIVA_OPTIONS } from "../model";
+import { formatRupiah } from "~/utils/formatter";
+import { AKTIVA_OPTIONS, setorSahamSchema } from "../model";
 
 const props = defineProps<{
   refresh?: () => void;
@@ -9,22 +9,13 @@ const props = defineProps<{
 
 const emit = defineEmits<{ close: [] }>();
 
-const { data: sahamPrice, pending: loadingPrice } = await useFetch<SahamPriceResponse>("/api/v1/simpanan/saham-price");
+const { data: sahamPrice, pending: loadingPrice } = await useFetch("/api/v1/simpanan/saham-price");
 
 const akunId = ref<number>(1);
 const jumlahLembar = ref<number | undefined>(1);
 const keterangan = ref("");
 
 const isLoading = ref(false);
-
-function formatRupiah(val?: number) {
-  if (val === undefined || val === null) return "Rp 0";
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(val);
-}
 
 const hargaNominal = computed(() => sahamPrice.value?.hargaNominal ?? 50000);
 const hargaJual = computed(() => sahamPrice.value?.hargaJual ?? 50000);
@@ -34,36 +25,41 @@ const agioTotal = computed(() => (jumlahLembar.value || 0) * Math.max(0, hargaJu
 const totalBayar = computed(() => nominalTotal.value + agioTotal.value);
 
 const isValid = computed(() => {
-  return (
-    akunId.value &&
-    jumlahLembar.value &&
-    jumlahLembar.value > 0 &&
-    sahamPrice.value !== null
-  );
+  const schemaValid = setorSahamSchema.safeParse({
+    akunId: akunId.value,
+    jumlahLembar: jumlahLembar.value,
+    keterangan: keterangan.value,
+  }).success;
+  return schemaValid && sahamPrice.value !== null && sahamPrice.value !== undefined;
 });
 
 async function handleSubmit() {
-  if (!isValid.value || !jumlahLembar.value) return;
+  const result = setorSahamSchema.safeParse({
+    akunId: akunId.value,
+    jumlahLembar: jumlahLembar.value,
+    keterangan: keterangan.value.trim() || undefined,
+  });
+
+  if (!result.success || !sahamPrice.value)
+    return;
 
   isLoading.value = true;
   try {
     await $fetch("/api/v1/simpanan/saham", {
       method: "POST",
-      body: {
-        akunId: akunId.value,
-        jumlahLembar: jumlahLembar.value,
-        keterangan: keterangan.value.trim() || undefined,
-      },
+      body: result.data,
     });
     useToastSuccess("Berhasil", "Pengajuan setor saham berhasil dikirim. Menunggu persetujuan admin.");
     props.refresh?.();
     emit("close");
-  } catch (error: any) {
+  }
+  catch (error: any) {
     useToastError(
       "Gagal Mengirim",
       error?.data?.statusMessage || error?.data?.message || "Terjadi kesalahan saat membuat pengajuan setor saham.",
     );
-  } finally {
+  }
+  finally {
     isLoading.value = false;
   }
 }

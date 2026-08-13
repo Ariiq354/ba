@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useToastError, useToastSuccess } from "~/composables/toast";
+import { rejectMutasiSchema } from "../model";
 
 const props = defineProps<{
   mutasiId: number;
@@ -12,28 +13,37 @@ const emit = defineEmits<{ close: [] }>();
 const alasanPenolakan = ref("");
 const isLoading = ref(false);
 
-const isValid = computed(() => alasanPenolakan.value.trim().length > 0);
+const isValid = computed(() => {
+  return rejectMutasiSchema.safeParse({
+    alasanPenolakan: alasanPenolakan.value.trim(),
+  }).success;
+});
 
 async function handleSubmit() {
-  if (!isValid.value) return;
+  const result = rejectMutasiSchema.safeParse({
+    alasanPenolakan: alasanPenolakan.value.trim(),
+  });
+
+  if (!result.success)
+    return;
 
   isLoading.value = true;
   try {
     await $fetch(`/api/v1/simpanan/admin/reject/${props.mutasiId}`, {
       method: "POST",
-      body: {
-        alasanPenolakan: alasanPenolakan.value.trim(),
-      },
+      body: result.data,
     });
     useToastSuccess("Berhasil Ditolak", `Transaksi ${props.kodeTransaksi} telah ditolak.`);
     props.refresh?.();
     emit("close");
-  } catch (error: any) {
+  }
+  catch (error: any) {
     useToastError(
       "Gagal Menolak",
       error?.data?.statusMessage || error?.data?.message || "Terjadi kesalahan saat menolak transaksi.",
     );
-  } finally {
+  }
+  finally {
     isLoading.value = false;
   }
 }

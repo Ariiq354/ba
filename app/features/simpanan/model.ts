@@ -1,17 +1,5 @@
-export interface SaldoResponse {
-  saldoTabungan: number;
-  saldoSaham: number;
-  sumPendingPenarikan: number;
-  effectiveSaldo: number;
-}
-
-export interface SahamPriceResponse {
-  id: number;
-  hargaNominal: number;
-  hargaJual: number;
-  updatedBy: number;
-  createdAt: string;
-}
+import type { TableColumn } from "@nuxt/ui";
+import { z } from "zod";
 
 export interface MutasiItem {
   id: number;
@@ -36,13 +24,54 @@ export interface MutasiItem {
   createdAt: string;
 }
 
-export interface PaginatedMutasiResponse {
-  items: MutasiItem[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
+export const setoranSchema = z.object({
+  akunId: z.number({ message: "Sumber rekening wajib dipilih" }).min(1, "Sumber rekening wajib dipilih"),
+  nilaiTransaksi: z.coerce.number({ message: "Nominal setoran wajib diisi" }).min(1000, "Nominal setoran minimal Rp 1.000"),
+  keterangan: z.string().optional(),
+});
+export type SetoranFormSchema = z.infer<typeof setoranSchema>;
+
+export const penarikanSchema = z.object({
+  akunId: z.number({ message: "Tujuan pencairan wajib dipilih" }).min(1, "Tujuan pencairan wajib dipilih"),
+  nilaiTransaksi: z.coerce.number({ message: "Nominal penarikan wajib diisi" }).min(1000, "Nominal penarikan minimal Rp 1.000"),
+  keterangan: z.string().optional(),
+});
+export type PenarikanFormSchema = z.infer<typeof penarikanSchema>;
+
+export const setorSahamSchema = z.object({
+  akunId: z.number({ message: "Sumber pembayaran wajib dipilih" }).min(1, "Sumber pembayaran wajib dipilih"),
+  jumlahLembar: z.coerce.number({ message: "Jumlah lembar saham wajib diisi" }).min(1, "Jumlah lembar saham minimal 1"),
+  keterangan: z.string().optional(),
+});
+export type SetorSahamFormSchema = z.infer<typeof setorSahamSchema>;
+
+export const rejectMutasiSchema = z.object({
+  alasanPenolakan: z.string({ message: "Alasan penolakan wajib diisi" }).min(1, "Alasan penolakan wajib diisi"),
+});
+export type RejectMutasiFormSchema = z.infer<typeof rejectMutasiSchema>;
+
+export const simpananMutasiColumns: TableColumn<MutasiItem>[] = [
+  { accessorKey: "kodeTransaksi", header: "Kode Transaksi" },
+  { accessorKey: "tanggalTransaksi", header: "Tanggal" },
+  { accessorKey: "jenisTransaksi", header: "Jenis" },
+  { accessorKey: "namaAkun", header: "Pembayaran" },
+  { accessorKey: "nilaiTransaksi", header: "Nominal" },
+  { accessorKey: "statusApproved", header: "Status" },
+  { accessorKey: "keterangan", header: "Keterangan" },
+  { id: "actions", header: "Aksi" },
+];
+
+export const approvalMutasiColumns: TableColumn<MutasiItem>[] = [
+  { accessorKey: "kodeTransaksi", header: "Kode Transaksi" },
+  { accessorKey: "userName", header: "Anggota / User" },
+  { accessorKey: "tanggalTransaksi", header: "Tanggal" },
+  { accessorKey: "jenisTransaksi", header: "Jenis" },
+  { accessorKey: "namaAkun", header: "Pembayaran" },
+  { accessorKey: "nilaiTransaksi", header: "Nominal" },
+  { accessorKey: "statusApproved", header: "Status" },
+  { accessorKey: "keterangan", header: "Keterangan" },
+  { id: "actions", header: "Aksi Persetujuan" },
+];
 
 export interface AktivaOption {
   id: number;

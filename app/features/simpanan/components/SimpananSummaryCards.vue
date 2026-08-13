@@ -1,19 +1,15 @@
 <script setup lang="ts">
-import type { SaldoResponse } from "../model";
+import { formatRupiah } from "~/utils/formatter";
 
 defineProps<{
-  saldo?: SaldoResponse | null;
+  saldo?: {
+    saldoTabungan: number;
+    saldoSaham: number;
+    sumPendingPenarikan: number;
+    effectiveSaldo: number;
+  } | null;
   loading?: boolean;
 }>();
-
-function formatRupiah(val?: number) {
-  if (val === undefined || val === null) return "Rp 0";
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(val);
-}
 </script>
 
 <template>

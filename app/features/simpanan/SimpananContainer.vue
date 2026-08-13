@@ -6,7 +6,6 @@ import ModalSetoranForm from "./components/ModalSetoranForm.vue";
 import ModalSetorSahamForm from "./components/ModalSetorSahamForm.vue";
 import SimpananMutasiTable from "./components/SimpananMutasiTable.vue";
 import SimpananSummaryCards from "./components/SimpananSummaryCards.vue";
-import type { PaginatedMutasiResponse, SaldoResponse } from "./model";
 
 const page = ref(1);
 const search = ref("");
@@ -20,10 +19,10 @@ const queryParams = computed(() => ({
 }));
 
 // Fetch Saldo Info
-const { data: saldoData, pending: loadingSaldo, refresh: refreshSaldo } = await useFetch<SaldoResponse>("/api/v1/simpanan/saldo");
+const { data: saldoData, pending: loadingSaldo, refresh: refreshSaldo } = await useFetch("/api/v1/simpanan/saldo");
 
 // Fetch Mutasi List
-const { data: mutasiData, pending: loadingMutasi, refresh: refreshMutasi } = await useFetch<PaginatedMutasiResponse>("/api/v1/simpanan/mutasi", {
+const { data: mutasiData, pending: loadingMutasi, refresh: refreshMutasi } = await useFetch("/api/v1/simpanan/mutasi", {
   query: queryParams,
 });
 

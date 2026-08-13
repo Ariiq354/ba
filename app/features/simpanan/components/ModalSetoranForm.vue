@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useToastError, useToastSuccess } from "~/composables/toast";
-import { AKTIVA_OPTIONS } from "../model";
+import { AKTIVA_OPTIONS, setoranSchema } from "../model";
 
 const props = defineProps<{
   refresh?: () => void;
@@ -15,31 +15,40 @@ const keterangan = ref("");
 const isLoading = ref(false);
 
 const isValid = computed(() => {
-  return akunId.value && nilaiTransaksi.value && nilaiTransaksi.value > 0;
+  return setoranSchema.safeParse({
+    akunId: akunId.value,
+    nilaiTransaksi: nilaiTransaksi.value,
+    keterangan: keterangan.value,
+  }).success;
 });
 
 async function handleSubmit() {
-  if (!isValid.value || !nilaiTransaksi.value) return;
+  const result = setoranSchema.safeParse({
+    akunId: akunId.value,
+    nilaiTransaksi: nilaiTransaksi.value,
+    keterangan: keterangan.value.trim() || undefined,
+  });
+
+  if (!result.success)
+    return;
 
   isLoading.value = true;
   try {
     await $fetch("/api/v1/simpanan/setoran", {
       method: "POST",
-      body: {
-        akunId: akunId.value,
-        nilaiTransaksi: nilaiTransaksi.value,
-        keterangan: keterangan.value.trim() || undefined,
-      },
+      body: result.data,
     });
     useToastSuccess("Berhasil", "Pengajuan setoran tabungan berhasil dikirim. Menunggu persetujuan admin.");
     props.refresh?.();
     emit("close");
-  } catch (error: any) {
+  }
+  catch (error: any) {
     useToastError(
       "Gagal Mengirim",
       error?.data?.statusMessage || error?.data?.message || "Terjadi kesalahan saat membuat pengajuan setoran.",
     );
-  } finally {
+  }
+  finally {
     isLoading.value = false;
   }
 }

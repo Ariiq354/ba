@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useToastError, useToastSuccess } from "~/composables/toast";
-import { AKTIVA_OPTIONS } from "../model";
+import { formatRupiah } from "~/utils/formatter";
+import { AKTIVA_OPTIONS, penarikanSchema } from "../model";
 
 const props = defineProps<{
   effectiveSaldo: number;
@@ -15,51 +16,48 @@ const keterangan = ref("");
 
 const isLoading = ref(false);
 
-function formatRupiah(val?: number) {
-  if (val === undefined || val === null) return "Rp 0";
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(val);
-}
-
 const isExceedingBalance = computed(() => {
-  if (!nilaiTransaksi.value) return false;
+  if (!nilaiTransaksi.value)
+    return false;
   return nilaiTransaksi.value > props.effectiveSaldo;
 });
 
 const isValid = computed(() => {
-  return (
-    akunId.value &&
-    nilaiTransaksi.value &&
-    nilaiTransaksi.value > 0 &&
-    !isExceedingBalance.value
-  );
+  const schemaValid = penarikanSchema.safeParse({
+    akunId: akunId.value,
+    nilaiTransaksi: nilaiTransaksi.value,
+    keterangan: keterangan.value,
+  }).success;
+  return schemaValid && !isExceedingBalance.value;
 });
 
 async function handleSubmit() {
-  if (!isValid.value || !nilaiTransaksi.value) return;
+  const result = penarikanSchema.safeParse({
+    akunId: akunId.value,
+    nilaiTransaksi: nilaiTransaksi.value,
+    keterangan: keterangan.value.trim() || undefined,
+  });
+
+  if (!result.success || isExceedingBalance.value)
+    return;
 
   isLoading.value = true;
   try {
     await $fetch("/api/v1/simpanan/penarikan", {
       method: "POST",
-      body: {
-        akunId: akunId.value,
-        nilaiTransaksi: nilaiTransaksi.value,
-        keterangan: keterangan.value.trim() || undefined,
-      },
+      body: result.data,
     });
     useToastSuccess("Berhasil", "Pengajuan penarikan tabungan berhasil dikirim. Menunggu persetujuan admin.");
     props.refresh?.();
     emit("close");
-  } catch (error: any) {
+  }
+  catch (error: any) {
     useToastError(
       "Gagal Mengirim",
       error?.data?.statusMessage || error?.data?.message || "Terjadi kesalahan saat membuat pengajuan penarikan.",
     );
-  } finally {
+  }
+  finally {
     isLoading.value = false;
   }
 }

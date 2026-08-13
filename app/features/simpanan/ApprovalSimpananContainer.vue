@@ -3,7 +3,6 @@ import { openModal } from "~/composables/modal";
 import { useToastError, useToastSuccess } from "~/composables/toast";
 import ApprovalMutasiTable from "./components/ApprovalMutasiTable.vue";
 import ModalRejectMutasi from "./components/ModalRejectMutasi.vue";
-import type { PaginatedMutasiResponse } from "./model";
 
 const page = ref(1);
 const search = ref("");
@@ -23,7 +22,7 @@ const queryParams = computed(() => ({
   status: statusFilter.value || undefined,
 }));
 
-const { data: mutasiData, pending: loadingMutasi, refresh } = await useFetch<PaginatedMutasiResponse>("/api/v1/simpanan/admin/mutasi", {
+const { data: mutasiData, pending: loadingMutasi, refresh } = await useFetch("/api/v1/simpanan/admin/mutasi", {
   query: queryParams,
 });
 
@@ -34,8 +33,10 @@ watch([search, statusFilter], () => {
 const isApproving = ref(false);
 
 async function handleApprove(id: number, kodeTransaksi: string) {
-  if (isApproving.value) return;
+  if (isApproving.value)
+    return;
 
+  // eslint-disable-next-line no-alert
   if (!confirm(`Apakah Anda yakin ingin menyetujui (Approve) transaksi ${kodeTransaksi}? Saldo user dan Jurnal akan langsung diperbarui.`)) {
     return;
   }
@@ -47,12 +48,14 @@ async function handleApprove(id: number, kodeTransaksi: string) {
     });
     useToastSuccess("Berhasil Disetujui", `Transaksi ${kodeTransaksi} berhasil di-approve dan jurnal telah diposting.`);
     refresh();
-  } catch (error: any) {
+  }
+  catch (error: any) {
     useToastError(
       "Gagal Menyetujui",
       error?.data?.statusMessage || error?.data?.message || "Terjadi kesalahan saat menyetujui transaksi.",
     );
-  } finally {
+  }
+  finally {
     isApproving.value = false;
   }
 }
