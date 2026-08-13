@@ -155,7 +155,7 @@ export const SimpananRepo = {
               saldoSetelahTransaksi: 0,
               tanggalTransaksi: todayStr,
               statusApproved: "pending",
-              keterangan: data.keterangan || "Setoran Simpanan Berjangka",
+              keterangan: data.keterangan ? data.keterangan.replace(/\[SAHAM\]/g, "SAHAM") : "Setoran Simpanan Berjangka",
               createdBy: userId,
             })
             .returning();
@@ -339,12 +339,28 @@ export const SimpananRepo = {
             .set({ saldoTabungan: newSaldo, updatedAt: new Date() })
             .where(eq(saldoSimpanan.userId, mutasi.userId));
         } else {
-          // Penarikan Tabungan
+          // Penarikan Tabungan: validate effective balance (considering other pending withdrawals)
           const currentTabungan = saldo?.saldoTabungan ?? 0;
-          if (currentTabungan < mutasi.nilaiTransaksi) {
+          const otherPendingRows = await tx
+            .select({
+              totalPending: sql<number>`coalesce(sum(${mutasiSimpanan.nilaiTransaksi}), 0)::int`,
+            })
+            .from(mutasiSimpanan)
+            .where(
+              and(
+                eq(mutasiSimpanan.userId, mutasi.userId),
+                eq(mutasiSimpanan.jenisTransaksi, "penarikan"),
+                eq(mutasiSimpanan.statusApproved, "pending"),
+                sql`${mutasiSimpanan.id} != ${id}`,
+              ),
+            );
+          const otherPending = otherPendingRows[0]?.totalPending ?? 0;
+          const effectiveSaldoAtApproval = currentTabungan - otherPending;
+
+          if (effectiveSaldoAtApproval < mutasi.nilaiTransaksi) {
             throw {
               code: "INSUFFICIENT_BALANCE",
-              message: `Saldo tabungan user tidak mencukupi untuk approval penarikan. Saldo saat ini: Rp ${currentTabungan.toLocaleString("id-ID")}`,
+              message: `Saldo efektif tidak mencukupi untuk approval penarikan ini. Saldo Tabungan: Rp ${currentTabungan.toLocaleString("id-ID")}, Penarikan Pending Lainnya: Rp ${otherPending.toLocaleString("id-ID")}, Efektif: Rp ${effectiveSaldoAtApproval.toLocaleString("id-ID")}`,
             };
           }
           newSaldo = currentTabungan - mutasi.nilaiTransaksi;
