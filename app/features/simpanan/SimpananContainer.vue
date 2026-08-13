@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import ModalConfirmDelete from "~/components/modal/ModalConfirmDelete.vue";
+import DataTable from "~/components/table/DataTable.vue";
 import { openModal } from "~/composables/modal";
+import { formatDateShort, formatRupiah } from "~/utils/formatter";
 import ModalPenarikanForm from "./components/ModalPenarikanForm.vue";
 import ModalSetoranForm from "./components/ModalSetoranForm.vue";
 import ModalSetorSahamForm from "./components/ModalSetorSahamForm.vue";
-import SimpananMutasiTable from "./components/SimpananMutasiTable.vue";
 import SimpananSummaryCards from "./components/SimpananSummaryCards.vue";
+import { simpananMutasiColumns } from "./model";
 
 const page = ref(1);
 const search = ref("");
@@ -132,14 +134,132 @@ function handleDeleteMutasi(id: number, kodeTransaksi: string) {
 
       <!-- Mutasi Table -->
       <UCard class="border border-gray-200 dark:border-gray-800">
-        <SimpananMutasiTable
+        <DataTable
           v-model:page="page"
           :data="mutasiData?.items"
+          :columns="simpananMutasiColumns"
           :loading="loadingMutasi"
-          :total="mutasiData?.total"
-          :limit="mutasiData?.limit"
-          @delete="handleDeleteMutasi"
-        />
+          :total="mutasiData?.total ?? 0"
+          pagination
+        >
+          <!-- Kode Transaksi Column -->
+          <template #kodeTransaksi-cell="{ row }">
+            <span class="font-mono font-semibold text-gray-900 dark:text-white">
+              {{ row.original.kodeTransaksi }}
+            </span>
+          </template>
+
+          <!-- Tanggal Column -->
+          <template #tanggalTransaksi-cell="{ row }">
+            <span class="text-xs text-gray-600 dark:text-gray-400">
+              {{ formatDateShort(row.original.tanggalTransaksi) }}
+            </span>
+          </template>
+
+          <!-- Jenis Column -->
+          <template #jenisTransaksi-cell="{ row }">
+            <UBadge
+              v-if="row.original.keterangan?.includes('[SAHAM]') || row.original.agioSaham > 0"
+              color="info"
+              variant="subtle"
+              size="sm"
+            >
+              Setor Saham
+            </UBadge>
+            <UBadge
+              v-else-if="row.original.jenisTransaksi === 'setoran'"
+              color="primary"
+              variant="subtle"
+              size="sm"
+            >
+              Setoran Tabungan
+            </UBadge>
+            <UBadge
+              v-else
+              color="neutral"
+              variant="subtle"
+              size="sm"
+            >
+              Penarikan Tabungan
+            </UBadge>
+          </template>
+
+          <!-- Pembayaran Column -->
+          <template #namaAkun-cell="{ row }">
+            <span class="text-xs text-gray-700 dark:text-gray-300">
+              {{ row.original.namaAkun || `Akun #${row.original.akunId}` }}
+            </span>
+          </template>
+
+          <!-- Nominal Column -->
+          <template #nilaiTransaksi-cell="{ row }">
+            <div class="text-right font-medium">
+              <div class="text-gray-900 dark:text-white">
+                {{ formatRupiah(row.original.nilaiTransaksi) }}
+              </div>
+              <div v-if="row.original.agioSaham > 0" class="text-[11px] text-blue-600 dark:text-blue-400">
+                + Agio: {{ formatRupiah(row.original.agioSaham) }}
+              </div>
+            </div>
+          </template>
+
+          <!-- Status Column -->
+          <template #statusApproved-cell="{ row }">
+            <div>
+              <UBadge
+                v-if="row.original.statusApproved === 'pending'"
+                color="warning"
+                variant="solid"
+                size="sm"
+              >
+                Pending
+              </UBadge>
+              <UBadge
+                v-else-if="row.original.statusApproved === 'approved'"
+                color="success"
+                variant="solid"
+                size="sm"
+              >
+                Approved
+              </UBadge>
+              <UBadge
+                v-else
+                color="error"
+                variant="solid"
+                size="sm"
+              >
+                Rejected
+              </UBadge>
+              <p v-if="row.original.statusApproved === 'rejected' && row.original.alasanPenolakan" class="text-[11px] text-red-500 mt-1 max-w-xs">
+                Alasan: {{ row.original.alasanPenolakan }}
+              </p>
+            </div>
+          </template>
+
+          <!-- Keterangan Column -->
+          <template #keterangan-cell="{ row }">
+            <span class="text-xs text-gray-500 dark:text-gray-400 max-w-xs truncate block">
+              {{ row.original.keterangan || '-' }}
+            </span>
+          </template>
+
+          <!-- Actions Column -->
+          <template #actions-cell="{ row }">
+            <div v-if="row.original.statusApproved === 'pending'">
+              <UButton
+                icon="i-tabler-trash"
+                color="error"
+                variant="ghost"
+                size="xs"
+                title="Batalkan / Hapus Pengajuan"
+                @click="handleDeleteMutasi(row.original.id, row.original.kodeTransaksi)"
+              >
+                Batal
+              </UButton>
+            </div>
+            <span v-else class="text-xs text-gray-400">-</span>
+          </template>
+        </DataTable>
       </UCard>
     </div>
   </div>

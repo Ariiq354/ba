@@ -15,7 +15,8 @@ Single-context documentation layout (`CONTEXT.md` + `docs/adr/`). See `docs/agen
 ### Feature Architecture Rules
 
 Feature modules (`app/features/*`) must strictly adhere to ADR 0001 (`docs/adr/0001-feature-module-architecture.md`):
+
 - **Utils**: All formatters/helpers must be in `app/utils/` (no inline formatters in `.vue`).
 - **Inference**: Do not pass explicit generic types to `useFetch` (Nuxt auto-infers return types). Keep component `props` types in `.vue` files.
 - **Model**: Put table columns (`TableColumn<T>[]`) and Zod schemas in `app/features/<feature-name>/model.ts`.
-
+- **DataTable**: Feature containers must use `DataTable.vue` (`~/components/table/DataTable.vue`) directly instead of creating single-use table wrappers.
