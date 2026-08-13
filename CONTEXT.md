@@ -45,8 +45,19 @@ This repository handles the core system for the member financial portal (Koperas
 
 ### Accounting & Transactions
 
-- **Jurnal Transaksi (General Journal Entries)**
-  Double-entry journal records consisting of 1 header (`jurnal`: `kodeTransaksi`, `tanggalTransaksi`, `keterangan`, `userId`) and multiple detail lines (`jurnalDetail`: `akunId`, `debit`, `kredit`). Requires strict balance validation (`Sum(Debit) == Sum(Kredit)`). Formatted with auto-generated code prefix `TRX-{YYYYMMDD}-{SEQ}` (daily resetting 3-digit sequence). Journal entries are immutable (cannot be edited directly; admins may only create new entries or delete existing ones).
+- **Mutasi Simpanan & Penarikan**
+  Transaction records for member savings deposits (`setoran`), withdrawals (`penarikan`), and share capital purchases (`setor saham`). ALL mutasi transactions use auto-generated code prefix `STR-{YYYYMMDD}-{SEQ}`. New transactions start in `pending` status with `saldoSetelahTransaksi = 0`. Pending transactions can be deleted (row removed from DB) by the member who created them prior to admin approval.
+
+- **Saldo Efektif (Effective Balance)**
+  The actual withdrawable balance for a member, calculated as `saldoTabungan - SUM(nilaiTransaksi penarikan pending)`. Checked both at submission by the member and at approval time by the admin to prevent over-withdrawal.
+
+- **Setoran Saham (Share Capital Purchase)**
+  Member deposit towards equity shares based on user-selected share count and latest share price settings (`hargaJual`, `hargaNominal`). The nominal portion (`count * hargaNominal`) maps to `SAHAM50` (19), and excess (`count * (hargaJual - hargaNominal)`) maps to `AGIOSAHAM` (50) stored in `agioSaham`. Only deposits are supported for shares (no withdrawals).
+
+- **Persetujuan Mutasi (Mutation Approval Flow)**
+  Administrator verification process for pending mutasi transactions. Approval updates `mutasiSimpanan` status to `approved`, updates user's `saldoSimpanan` (`saldoTabungan` or `saldoSaham`), records the new balance in `saldoSetelahTransaksi`, and generates corresponding double-entry records in `jurnal` and `jurnalDetail`. Rejection by admin updates status to `rejected` with mandatory `alasanPenolakan` without modifying balances or journal entries.
+
+
 
 
 

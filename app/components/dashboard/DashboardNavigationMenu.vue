@@ -15,6 +15,7 @@ const items = ref<NavigationMenuItem[][]>([
     { label: "Master Margin", to: "/dashboard/master-margin", icon: "i-tabler-percentage" },
     { label: "Master Saham", to: "/dashboard/master-saham", icon: "i-tabler-chart-candle" },
     { label: "Daftar Akun", to: "/dashboard/master-akun", icon: "i-tabler-book-2" },
+    { label: "Approval Simpanan", to: "/dashboard/approval-simpanan", icon: "i-tabler-checks" },
     { label: "Jurnal Transaksi", to: "/dashboard/jurnal", icon: "i-tabler-receipt-2" },
   ],
 ]);
