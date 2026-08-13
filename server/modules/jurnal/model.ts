@@ -30,7 +30,7 @@ export const createJurnalSchema = z
 
     if (totalDebit <= 0 || totalKredit <= 0) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Nominal transaksi harus lebih dari 0",
         path: ["details"],
       });
@@ -38,7 +38,7 @@ export const createJurnalSchema = z
 
     if (totalDebit !== totalKredit) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: `Total Debit (${totalDebit}) harus sama dengan Total Kredit (${totalKredit})`,
         path: ["details"],
       });
@@ -46,4 +46,3 @@ export const createJurnalSchema = z
   });
 
 export type CreateJurnalSchema = z.infer<typeof createJurnalSchema>;
-

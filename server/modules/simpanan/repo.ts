@@ -5,7 +5,7 @@ import type {
   GetMutasiQueryInput,
 } from "./model";
 import { and, desc, eq, ilike, sql } from "drizzle-orm";
-import { ResultAsync } from "neverthrow";
+import { errAsync, ResultAsync } from "neverthrow";
 import { db } from "~~/server/database";
 import { akun } from "~~/server/database/schema/akun";
 import { user } from "~~/server/database/schema/auth";
@@ -120,21 +120,20 @@ export const SimpananRepo = {
     });
   },
 
-  ensureSaldoRecordTx(tx: Parameters<Parameters<typeof db.transaction>[0]>[0], userId: number) {
-    return tx
+  async ensureSaldoRecordTx(tx: Parameters<Parameters<typeof db.transaction>[0]>[0], userId: number) {
+    const rows = await tx
       .select()
       .from(saldoSimpanan)
       .where(eq(saldoSimpanan.userId, userId))
-      .limit(1)
-      .then(async (rows) => {
-        if (!rows.length) {
-          await tx.insert(saldoSimpanan).values({
-            userId,
-            saldoTabungan: 0,
-            saldoSaham: 0,
-          });
-        }
+      .limit(1);
+
+    if (!rows.length) {
+      await tx.insert(saldoSimpanan).values({
+        userId,
+        saldoTabungan: 0,
+        saldoSaham: 0,
       });
+    }
   },
 
   createSetoran(userId: number, data: CreateSetoranInput) {
@@ -169,13 +168,10 @@ export const SimpananRepo = {
   createPenarikan(userId: number, data: CreatePenarikanInput) {
     return this.getSaldo(userId).andThen((saldo) => {
       if (saldo.effectiveSaldo < data.nilaiTransaksi) {
-        return ResultAsync.fromPromise(
-          Promise.reject({
-            code: "INSUFFICIENT_BALANCE",
-            message: `Saldo efektif tidak mencukupi untuk penarikan sebesar Rp ${data.nilaiTransaksi.toLocaleString("id-ID")}. Saldo Efektif: Rp ${saldo.effectiveSaldo.toLocaleString("id-ID")}`,
-          }),
-          err => err as { code: string; message: string },
-        );
+        return errAsync({
+          code: "INSUFFICIENT_BALANCE",
+          message: `Saldo efektif tidak mencukupi untuk penarikan sebesar Rp ${data.nilaiTransaksi.toLocaleString("id-ID")}. Saldo Efektif: Rp ${saldo.effectiveSaldo.toLocaleString("id-ID")}`,
+        } as const);
       }
 
       const todayStr = new Date().toISOString().substring(0, 10);
@@ -210,13 +206,10 @@ export const SimpananRepo = {
   createSetorSaham(userId: number, data: CreateSetorSahamInput) {
     return this.getLatestSahamPrice().andThen((latestSaham) => {
       if (!latestSaham) {
-        return ResultAsync.fromPromise(
-          Promise.reject({
-            code: "SAHAM_MASTER_NOT_FOUND",
-            message: "Master harga saham belum diatur oleh administrator",
-          }),
-          err => err as { code: string; message: string },
-        );
+        return errAsync({
+          code: "SAHAM_MASTER_NOT_FOUND",
+          message: "Master harga saham belum diatur oleh administrator",
+        } as const);
       }
 
       const hargaNominal = latestSaham.hargaNominal;
@@ -267,23 +260,17 @@ export const SimpananRepo = {
     ).andThen((rows) => {
       const existing = rows[0];
       if (!existing || existing.userId !== userId) {
-        return ResultAsync.fromPromise(
-          Promise.reject({
-            code: "NOT_FOUND",
-            message: "Data mutasi tidak ditemukan",
-          }),
-          err => err as { code: string; message: string },
-        );
+        return errAsync({
+          code: "NOT_FOUND",
+          message: "Data mutasi tidak ditemukan",
+        } as const);
       }
 
       if (existing.statusApproved !== "pending") {
-        return ResultAsync.fromPromise(
-          Promise.reject({
-            code: "CANNOT_DELETE_PROCESSED",
-            message: "Transaksi yang sudah diproses (approved/rejected) tidak dapat dihapus",
-          }),
-          err => err as { code: string; message: string },
-        );
+        return errAsync({
+          code: "CANNOT_DELETE_PROCESSED",
+          message: "Transaksi yang sudah diproses (approved/rejected) tidak dapat dihapus",
+        } as const);
       }
 
       return ResultAsync.fromPromise(
@@ -306,11 +293,11 @@ export const SimpananRepo = {
           .for("update");
 
         if (!mutasi) {
-          throw { code: "NOT_FOUND", message: "Data mutasi simpanan tidak ditemukan" };
+          throw new Error("NOT_FOUND: Data mutasi simpanan tidak ditemukan");
         }
 
         if (mutasi.statusApproved !== "pending") {
-          throw { code: "ALREADY_PROCESSED", message: "Transaksi ini sudah diproses sebelumnya" };
+          throw new Error("ALREADY_PROCESSED: Transaksi ini sudah diproses sebelumnya");
         }
 
         await this.ensureSaldoRecordTx(tx, mutasi.userId);
@@ -331,14 +318,16 @@ export const SimpananRepo = {
             .update(saldoSimpanan)
             .set({ saldoSaham: newSaldo, updatedAt: new Date() })
             .where(eq(saldoSimpanan.userId, mutasi.userId));
-        } else if (mutasi.jenisTransaksi === "setoran") {
+        }
+        else if (mutasi.jenisTransaksi === "setoran") {
           // Setoran Tabungan
           newSaldo = (saldo?.saldoTabungan ?? 0) + mutasi.nilaiTransaksi;
           await tx
             .update(saldoSimpanan)
             .set({ saldoTabungan: newSaldo, updatedAt: new Date() })
             .where(eq(saldoSimpanan.userId, mutasi.userId));
-        } else {
+        }
+        else {
           // Penarikan Tabungan: validate effective balance (considering other pending withdrawals)
           const currentTabungan = saldo?.saldoTabungan ?? 0;
           const otherPendingRows = await tx
@@ -358,10 +347,7 @@ export const SimpananRepo = {
           const effectiveSaldoAtApproval = currentTabungan - otherPending;
 
           if (effectiveSaldoAtApproval < mutasi.nilaiTransaksi) {
-            throw {
-              code: "INSUFFICIENT_BALANCE",
-              message: `Saldo efektif tidak mencukupi untuk approval penarikan ini. Saldo Tabungan: Rp ${currentTabungan.toLocaleString("id-ID")}, Penarikan Pending Lainnya: Rp ${otherPending.toLocaleString("id-ID")}, Efektif: Rp ${effectiveSaldoAtApproval.toLocaleString("id-ID")}`,
-            };
+            throw new Error(`INSUFFICIENT_BALANCE: Saldo efektif tidak mencukupi untuk approval penarikan ini. Saldo Tabungan: Rp ${currentTabungan.toLocaleString("id-ID")}, Penarikan Pending Lainnya: Rp ${otherPending.toLocaleString("id-ID")}, Efektif: Rp ${effectiveSaldoAtApproval.toLocaleString("id-ID")}`);
           }
           newSaldo = currentTabungan - mutasi.nilaiTransaksi;
           await tx
@@ -413,7 +399,7 @@ export const SimpananRepo = {
           .returning();
 
         if (!jurnalHeader) {
-          throw { code: "DATABASE_ERROR", message: "Gagal membuat header jurnal" };
+          throw new Error("DATABASE_ERROR: Gagal membuat header jurnal");
         }
 
         // Journal Details Mapping
@@ -448,7 +434,8 @@ export const SimpananRepo = {
           }
 
           await tx.insert(jurnalDetail).values(detailRows);
-        } else if (mutasi.jenisTransaksi === "setoran") {
+        }
+        else if (mutasi.jenisTransaksi === "setoran") {
           // Setoran Tabungan:
           // Debit: Kas/Bank (mutasi.akunId) = nilaiTransaksi
           // Kredit: SIMPANANBERJANGKA (12) = nilaiTransaksi
@@ -466,7 +453,8 @@ export const SimpananRepo = {
               kredit: mutasi.nilaiTransaksi,
             },
           ]);
-        } else {
+        }
+        else {
           // Penarikan Tabungan:
           // Debit: SIMPANANBERJANGKA (12) = nilaiTransaksi
           // Kredit: Kas/Bank (mutasi.akunId) = nilaiTransaksi
@@ -488,7 +476,22 @@ export const SimpananRepo = {
 
         return updatedMutasi;
       }),
-      cause => (typeof cause === "object" && cause && "code" in cause ? cause as { code: string; message: string } : { code: "DATABASE_ERROR", cause }),
+      (cause) => {
+        if (cause instanceof Error && cause.message.includes(": ")) {
+          const [codeStr, ...msgParts] = cause.message.split(": ");
+          const message = msgParts.join(": ");
+          if (codeStr === "NOT_FOUND") {
+            return { code: "NOT_FOUND", message } as const;
+          }
+          if (codeStr === "ALREADY_PROCESSED") {
+            return { code: "ALREADY_PROCESSED", message } as const;
+          }
+          if (codeStr === "INSUFFICIENT_BALANCE") {
+            return { code: "INSUFFICIENT_BALANCE", message } as const;
+          }
+        }
+        return { code: "DATABASE_ERROR", cause } as const;
+      },
     );
   },
 
@@ -503,17 +506,17 @@ export const SimpananRepo = {
     ).andThen((rows) => {
       const mutasi = rows[0];
       if (!mutasi) {
-        return ResultAsync.fromPromise(
-          Promise.reject({ code: "NOT_FOUND", message: "Data mutasi simpanan tidak ditemukan" }),
-          err => err as { code: string; message: string },
-        );
+        return errAsync({
+          code: "NOT_FOUND",
+          message: "Data mutasi simpanan tidak ditemukan",
+        } as const);
       }
 
       if (mutasi.statusApproved !== "pending") {
-        return ResultAsync.fromPromise(
-          Promise.reject({ code: "ALREADY_PROCESSED", message: "Transaksi ini sudah diproses sebelumnya" }),
-          err => err as { code: string; message: string },
-        );
+        return errAsync({
+          code: "ALREADY_PROCESSED",
+          message: "Transaksi ini sudah diproses sebelumnya",
+        } as const);
       }
 
       return ResultAsync.fromPromise(
@@ -551,7 +554,6 @@ export const SimpananRepo = {
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-    const approvedUser = sql`approved_user`;
 
     return ResultAsync.fromPromise(
       Promise.all([

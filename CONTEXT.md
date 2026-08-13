@@ -64,3 +64,11 @@ See [`docs/adr/0001-feature-module-architecture.md`](file:///home/danubis/Projec
 1. **Utility Functions (`app/utils/`)**: All formatters (`formatRupiah`, `formatDate`, `formatDateShort`) belong in `app/utils/`. Do NOT define local inline formatters inside `.vue` components.
 2. **Type Inference & Component Props**: Do NOT pass explicit generic parameters to `useFetch` (Nuxt auto-infers server route types). Define component `props` types inside the component `.vue` file itself, not in `model.ts`.
 3. **`model.ts` Responsibilities**: Place all `TableColumn<T>[]` definitions and Zod schemas (`z.object({...})` & `z.infer<typeof ...>`) in `app/features/<feature-name>/model.ts`.
+
+## Server Module Architecture & Conventions (`server/modules/*` & `server/api/*`)
+
+See [`docs/adr/0002-server-module-architecture.md`](file:///home/danubis/Projects/ba/docs/adr/0002-server-module-architecture.md) for full details. All agents modifying or adding server code must adhere to:
+
+1. **Neverthrow Implicit Type Inference**: Use `errAsync({ code: "...", message: "..." } as const)` for domain errors. Avoid explicit error interface types; rely on TypeScript implicit return type inference.
+2. **Drizzle Transaction Rollback**: Throw `new Error("CODE: message")` inside `db.transaction(...)` for clean rollback and ESLint `no-throw-literal` compliance. Map cause to `{ code: "CODE", message: "..." } as const` in `ResultAsync.fromPromise(..., (cause) => ...)`.
+3. **API Route Error Matching**: Endpoint handlers in `server/api/v1/*` must consume services using `.match(data => data, (err) => { switch (err.code) { ... } })` mapping error codes to HTTP status codes via `createError()`.

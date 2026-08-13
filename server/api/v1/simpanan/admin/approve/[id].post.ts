@@ -17,25 +17,26 @@ export default defineEventHandler(async (event) => {
   return await SimpananService.approveMutasi(id, adminUser.id).match(
     data => data,
     (err) => {
-      const code = typeof err === "object" && err && "code" in err ? String(err.code) : "DATABASE_ERROR";
-      const message = typeof err === "object" && err && "message" in err ? String(err.message) : "Gagal menyetujui mutasi";
-      if (code === "NOT_FOUND") {
-        throw createError({
-          statusCode: 404,
-          statusMessage: message,
-        });
+      switch (err.code) {
+        case "NOT_FOUND":
+          throw createError({
+            statusCode: 404,
+            statusMessage: err.message,
+          });
+        case "ALREADY_PROCESSED":
+        case "INSUFFICIENT_BALANCE":
+          throw createError({
+            statusCode: 400,
+            statusMessage: err.message,
+          });
+        case "DATABASE_ERROR":
+        default:
+          console.error(err);
+          throw createError({
+            statusCode: 500,
+            statusMessage: "Gagal menyetujui mutasi",
+          });
       }
-      if (code === "ALREADY_PROCESSED" || code === "INSUFFICIENT_BALANCE") {
-        throw createError({
-          statusCode: 400,
-          statusMessage: message,
-        });
-      }
-      console.error(err);
-      throw createError({
-        statusCode: 500,
-        statusMessage: message,
-      });
     },
   );
 });

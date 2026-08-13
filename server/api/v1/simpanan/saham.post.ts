@@ -11,17 +11,20 @@ export default defineEventHandler(async (event) => {
   return await SimpananService.createSetorSaham(user.id, body).match(
     data => data,
     (err) => {
-      if (err.code === "SAHAM_MASTER_NOT_FOUND") {
-        throw createError({
-          statusCode: 400,
-          statusMessage: err.message,
-        });
+      switch (err.code) {
+        case "SAHAM_MASTER_NOT_FOUND":
+          throw createError({
+            statusCode: 400,
+            statusMessage: err.message,
+          });
+        case "DATABASE_ERROR":
+        default:
+          console.error(err);
+          throw createError({
+            statusCode: 500,
+            statusMessage: "Gagal membuat pengajuan setor saham",
+          });
       }
-      console.error(err);
-      throw createError({
-        statusCode: 500,
-        statusMessage: "Gagal membuat pengajuan setor saham",
-      });
     },
   );
 });
