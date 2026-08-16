@@ -11,7 +11,8 @@ export async function readValidatedMultipart<T>(
   if (!form) {
     throw createError({
       statusCode: 400,
-      statusMessage: "Missing form data",
+      statusMessage: "Validation Error",
+      message: "Form data tidak ditemukan",
     });
   }
 
@@ -21,7 +22,8 @@ export async function readValidatedMultipart<T>(
     if (!item.name) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Multipart field name is required",
+        statusMessage: "Validation Error",
+        message: "Field name pada multipart form wajib diisi",
       });
     }
 
@@ -47,8 +49,9 @@ export async function readValidatedMultipart<T>(
   if (!parsed.success) {
     throw createError({
       statusCode: 400,
-      statusMessage: "Invalid data",
-      data: prettifyError(parsed.error),
+      statusMessage: "Validation Error",
+      message: prettifyError(parsed.error),
+      data: parsed.error.issues,
     });
   }
 
@@ -64,8 +67,9 @@ export async function getValidatedQuerySafe<T>(
   if (!result.success) {
     throw createError({
       statusCode: 400,
-      statusMessage: "Invalid query",
-      data: prettifyError(result.error),
+      statusMessage: "Validation Error",
+      message: prettifyError(result.error),
+      data: result.error.issues,
     });
   }
 
@@ -81,8 +85,9 @@ export async function readValidatedBodySafe<T>(
   if (!result.success) {
     throw createError({
       statusCode: 400,
-      statusMessage: "Invalid body",
-      data: prettifyError(result.error),
+      statusMessage: "Validation Error",
+      message: prettifyError(result.error),
+      data: result.error.issues,
     });
   }
 
@@ -98,8 +103,9 @@ export async function getValidatedRouterParamsSafe<T>(
   if (!result.success) {
     throw createError({
       statusCode: 400,
-      statusMessage: "Invalid params",
-      data: prettifyError(result.error),
+      statusMessage: "Validation Error",
+      message: prettifyError(result.error),
+      data: result.error.issues,
     });
   }
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { FormSubmitEvent } from "@nuxt/ui";
 import type { AkunFormSchema, AkunItem } from "../model";
-import { useToastError, useToastSuccess } from "~/composables/toast";
+import { extractErrorMessage, useToastError, useToastSuccess } from "~/composables/toast";
 import { akunSchema } from "../model";
 
 const props = defineProps<{
@@ -66,8 +66,8 @@ async function onSubmit(event: FormSubmitEvent<AkunFormSchema>) {
     props.refresh?.();
     emit("close");
   }
-  catch (error: any) {
-    useToastError("Gagal", error?.data?.statusMessage || error?.data?.message || "Terjadi kesalahan saat menyimpan data.");
+  catch (error: unknown) {
+    useToastError("Gagal", extractErrorMessage(error, "Terjadi kesalahan saat menyimpan data."));
   }
   finally {
     isLoading.value = false;

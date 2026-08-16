@@ -11,7 +11,8 @@ export const MasterSahamService = {
       console.error("Gagal membuat data master saham:", err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal membuat data master saham",
+        statusMessage: "Database Error",
+        message: "Gagal membuat data master saham",
       });
     }
     return created;
@@ -23,14 +24,16 @@ export const MasterSahamService = {
       console.error("Gagal mengambil data saham terbaru:", err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mengambil data master saham",
+        statusMessage: "Database Error",
+        message: "Gagal mengambil data master saham",
       });
     }
 
     if (!data) {
       throw createError({
         statusCode: 404,
-        statusMessage: "Data saham belum tersedia",
+        statusMessage: "Not Found",
+        message: "Data master harga saham belum tersedia",
       });
     }
 
@@ -43,7 +46,8 @@ export const MasterSahamService = {
       console.error("Gagal mengambil data paginasi saham:", err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mengambil data master saham",
+        statusMessage: "Database Error",
+        message: "Gagal mengambil data master saham",
       });
     }
     return result;

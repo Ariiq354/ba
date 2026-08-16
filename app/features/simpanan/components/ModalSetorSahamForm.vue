@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useToastError, useToastSuccess } from "~/composables/toast";
+import { extractErrorMessage, useToastError, useToastSuccess } from "~/composables/toast";
 import { formatRupiah } from "~/utils/formatter";
 import { AKTIVA_OPTIONS, setorSahamSchema } from "../model";
 
@@ -53,10 +53,10 @@ async function handleSubmit() {
     props.refresh?.();
     emit("close");
   }
-  catch (error: any) {
+  catch (error: unknown) {
     useToastError(
       "Gagal Mengirim",
-      error?.data?.statusMessage || error?.data?.message || "Terjadi kesalahan saat membuat pengajuan setor saham.",
+      extractErrorMessage(error, "Terjadi kesalahan saat membuat pengajuan setor saham."),
     );
   }
   finally {

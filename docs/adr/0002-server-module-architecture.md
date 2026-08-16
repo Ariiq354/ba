@@ -1,11 +1,11 @@
 # ADR 0002: Server Module & API Architecture Conventions
 
-- **Status**: Accepted (Updated 2026-08-16: Migrated from Neverthrow to standard Go-style `catchError` tuple + Service `createError` pattern)
+- **Status**: Accepted (Updated 2026-08-16: Standardized 3-property `createError` format: `statusCode`, `statusMessage`, and user-facing `message`)
 - **Date**: 2026-08-13 (Revised 2026-08-16)
 
 ## Context
 
-Previous server architecture relied on `neverthrow` (`ResultAsync`, `.match()`), which introduced excessive verbosity and boilerplate in service methods and API endpoint handlers.
+Previous server architecture relied on `neverthrow` (`ResultAsync`, `.match()`), which introduced excessive verbosity and boilerplate in service methods and API endpoint handlers. Furthermore, error formats required standardisation across HTTP status codes, error categories, and human-readable user messages.
 
 ## Decisions
 
@@ -21,13 +21,19 @@ To enforce clean separation of concerns, explicit error reporting, and lightweig
 - **Service (`server/modules/<module>/service.ts`)**:
   - Encapsulates all business logic, validation, and multi-step transaction orchestration (`db.transaction(async (tx) => { ... })`).
   - Wraps async calls with `const [err, data] = await catchError(promise)` (`server/utils/error.ts`).
-  - Directly throws `createError({ statusCode, statusMessage })` on domain validations or database failures with explicit context and HTTP status codes (400, 404, 403, 500).
+  - Directly throws `createError({ statusCode, statusMessage, message })` on domain validations or database failures with explicit context.
 
 - **API Endpoints (`server/api/v1/*`)**:
   - Thin controllers that extract & validate inputs (`readValidatedBodySafe`, `getValidatedQuerySafe`), enforce authentication (`authGuard`, `adminGuard`), and return service calls directly: `return await MyService.method(...)`.
   - Nuxt / H3 automatically handles errors thrown by `createError()` from services.
 
-### 2. Standard `catchError` Usage in Service Layer
+### 2. Standard 3-Property `createError` Format
+
+Every `createError` MUST include:
+
+1. `statusCode`: HTTP status code (400, 401, 403, 404, 409, 500).
+2. `statusMessage`: Concise error category (`"Validation Error"`, `"Not Found"`, `"Conflict"`, `"Forbidden"`, `"Unauthorized"`, `"Database Error"`, `"Storage Error"`, `"Internal Server Error"`).
+3. `message`: Descriptive, user-facing error message in Indonesian.
 
 ```ts
 import { createError } from "h3";
@@ -41,14 +47,16 @@ export const MyService = {
       console.error(`Gagal mencari data ID ${id}:`, err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mengambil data",
+        statusMessage: "Database Error",
+        message: "Gagal mengambil data",
       });
     }
 
     if (!item) {
       throw createError({
         statusCode: 404,
-        statusMessage: "Data tidak ditemukan",
+        statusMessage: "Not Found",
+        message: "Data tidak ditemukan",
       });
     }
 
@@ -65,7 +73,11 @@ const [txErr, result] = await catchError(
     // Pass `tx` as client to repo methods
     const item = await MyRepo.findById(id, tx);
     if (!item) {
-      throw createError({ statusCode: 404, statusMessage: "Item not found" });
+      throw createError({
+        statusCode: 404,
+        statusMessage: "Not Found",
+        message: "Data tidak ditemukan",
+      });
     }
     return await MyRepo.update(id, data, tx);
   }),
@@ -78,8 +90,23 @@ if (txErr) {
   console.error("Gagal menjalankan transaksi:", txErr);
   throw createError({
     statusCode: 500,
-    statusMessage: "Gagal memproses transaksi",
+    statusMessage: "Database Error",
+    message: "Gagal memproses transaksi",
   });
+}
+```
+
+### 4. Client Error Consumption
+
+Frontend components import `extractErrorMessage` from `~/composables/toast` (which safely inspects `error instanceof FetchError && error.data?.message`):
+
+```ts
+try {
+  await $fetch("/api/v1/...", { method: "POST", body });
+  useToastSuccess("Berhasil", "Data berhasil disimpan");
+}
+catch (error: unknown) {
+  useToastError("Gagal", extractErrorMessage(error, "Terjadi kesalahan saat menyimpan data."));
 }
 ```
 

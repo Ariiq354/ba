@@ -10,14 +10,16 @@ export const MasterAkunService = {
       console.error("Gagal memeriksa kode akun:", findErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal memeriksa kode akun",
+        statusMessage: "Database Error",
+        message: "Gagal memeriksa kode akun",
       });
     }
 
     if (existing) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Kode akun sudah digunakan",
+        statusMessage: "Conflict",
+        message: "Kode akun sudah digunakan",
       });
     }
 
@@ -26,7 +28,8 @@ export const MasterAkunService = {
       console.error("Gagal membuat data akun:", createErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal membuat data akun",
+        statusMessage: "Database Error",
+        message: "Gagal membuat data akun",
       });
     }
 
@@ -39,7 +42,8 @@ export const MasterAkunService = {
       console.error("Gagal mengambil data akun:", err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mengambil data akun",
+        statusMessage: "Database Error",
+        message: "Gagal mengambil data akun",
       });
     }
     return result;
@@ -51,14 +55,16 @@ export const MasterAkunService = {
       console.error(`Gagal mencari akun dengan ID ${id}:`, findErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mencari data akun",
+        statusMessage: "Database Error",
+        message: "Gagal mencari data akun",
       });
     }
 
     if (!existing) {
       throw createError({
         statusCode: 404,
-        statusMessage: "Data akun tidak ditemukan",
+        statusMessage: "Not Found",
+        message: "Data akun tidak ditemukan",
       });
     }
 
@@ -68,14 +74,16 @@ export const MasterAkunService = {
         console.error("Gagal memeriksa duplikasi kode akun:", checkErr);
         throw createError({
           statusCode: 500,
-          statusMessage: "Gagal memeriksa duplikasi kode akun",
+          statusMessage: "Database Error",
+          message: "Gagal memeriksa duplikasi kode akun",
         });
       }
 
       if (other) {
         throw createError({
           statusCode: 400,
-          statusMessage: "Kode akun sudah digunakan oleh akun lain",
+          statusMessage: "Conflict",
+          message: "Kode akun sudah digunakan oleh akun lain",
         });
       }
     }
@@ -85,7 +93,8 @@ export const MasterAkunService = {
       console.error(`Gagal memperbarui akun dengan ID ${id}:`, updateErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal memperbarui data akun",
+        statusMessage: "Database Error",
+        message: "Gagal memperbarui data akun",
       });
     }
 
@@ -98,7 +107,8 @@ export const MasterAkunService = {
       console.error("Gagal menghapus data akun:", err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal menghapus data akun (kemungkinan sedang digunakan dalam transaksi)",
+        statusMessage: "Database Error",
+        message: "Gagal menghapus data akun (kemungkinan sedang digunakan dalam transaksi)",
       });
     }
     return deleted;

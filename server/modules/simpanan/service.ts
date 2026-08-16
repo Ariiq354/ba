@@ -18,7 +18,8 @@ export const SimpananService = {
       console.error(`Gagal mengambil saldo user ${userId}:`, err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mengambil data saldo",
+        statusMessage: "Database Error",
+        message: "Gagal mengambil data saldo",
       });
     }
     return saldo;
@@ -30,7 +31,8 @@ export const SimpananService = {
       console.error("Gagal mengambil harga saham terbaru:", err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mengambil data harga saham",
+        statusMessage: "Database Error",
+        message: "Gagal mengambil data harga saham",
       });
     }
     return sahamPrice;
@@ -42,7 +44,8 @@ export const SimpananService = {
       console.error("Gagal mengambil paginasi mutasi simpanan:", err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mengambil data mutasi",
+        statusMessage: "Database Error",
+        message: "Gagal mengambil data mutasi simpanan",
       });
     }
     return result;
@@ -57,7 +60,8 @@ export const SimpananService = {
       console.error("Gagal membuat kode transaksi setoran:", codeErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal membuat nomor transaksi setoran",
+        statusMessage: "Database Error",
+        message: "Gagal membuat nomor transaksi setoran",
       });
     }
 
@@ -87,7 +91,8 @@ export const SimpananService = {
       console.error("Gagal membuat pengajuan setoran:", txErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal membuat pengajuan setoran",
+        statusMessage: "Database Error",
+        message: "Gagal membuat pengajuan setoran",
       });
     }
 
@@ -100,14 +105,16 @@ export const SimpananService = {
       console.error(`Gagal memeriksa saldo user ${userId}:`, saldoErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal memeriksa data saldo",
+        statusMessage: "Database Error",
+        message: "Gagal memeriksa data saldo",
       });
     }
 
     if (saldo.effectiveSaldo < data.nilaiTransaksi) {
       throw createError({
         statusCode: 400,
-        statusMessage: `Saldo efektif tidak mencukupi untuk penarikan sebesar Rp ${data.nilaiTransaksi.toLocaleString("id-ID")}. Saldo Efektif: Rp ${saldo.effectiveSaldo.toLocaleString("id-ID")}`,
+        statusMessage: "Validation Error",
+        message: `Saldo efektif tidak mencukupi untuk penarikan sebesar Rp ${data.nilaiTransaksi.toLocaleString("id-ID")}. Saldo Efektif: Rp ${saldo.effectiveSaldo.toLocaleString("id-ID")}`,
       });
     }
 
@@ -119,7 +126,8 @@ export const SimpananService = {
       console.error("Gagal membuat kode transaksi penarikan:", codeErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal membuat nomor transaksi penarikan",
+        statusMessage: "Database Error",
+        message: "Gagal membuat nomor transaksi penarikan",
       });
     }
 
@@ -149,7 +157,8 @@ export const SimpananService = {
       console.error("Gagal membuat pengajuan penarikan:", txErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal membuat pengajuan penarikan",
+        statusMessage: "Database Error",
+        message: "Gagal membuat pengajuan penarikan",
       });
     }
 
@@ -162,14 +171,16 @@ export const SimpananService = {
       console.error("Gagal memeriksa harga saham:", sahamErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal memeriksa harga saham",
+        statusMessage: "Database Error",
+        message: "Gagal memeriksa harga saham",
       });
     }
 
     if (!latestSaham) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Master harga saham belum diatur oleh administrator",
+        statusMessage: "Validation Error",
+        message: "Master harga saham belum diatur oleh administrator",
       });
     }
 
@@ -189,7 +200,8 @@ export const SimpananService = {
       console.error("Gagal membuat kode transaksi setor saham:", codeErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal membuat nomor transaksi setor saham",
+        statusMessage: "Database Error",
+        message: "Gagal membuat nomor transaksi setor saham",
       });
     }
 
@@ -219,7 +231,8 @@ export const SimpananService = {
       console.error("Gagal membuat pengajuan setor saham:", txErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal membuat pengajuan setor saham",
+        statusMessage: "Database Error",
+        message: "Gagal membuat pengajuan setor saham",
       });
     }
 
@@ -232,21 +245,24 @@ export const SimpananService = {
       console.error(`Gagal mencari mutasi ID ${id}:`, findErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mencari data mutasi",
+        statusMessage: "Database Error",
+        message: "Gagal mencari data mutasi",
       });
     }
 
     if (!existing || existing.userId !== userId) {
       throw createError({
         statusCode: 404,
-        statusMessage: "Data mutasi tidak ditemukan",
+        statusMessage: "Not Found",
+        message: "Data mutasi tidak ditemukan",
       });
     }
 
     if (existing.statusApproved !== "pending") {
       throw createError({
         statusCode: 400,
-        statusMessage: "Transaksi yang sudah diproses (approved/rejected) tidak dapat dihapus",
+        statusMessage: "Validation Error",
+        message: "Transaksi yang sudah diproses (approved/rejected) tidak dapat dihapus",
       });
     }
 
@@ -255,7 +271,8 @@ export const SimpananService = {
       console.error(`Gagal menghapus mutasi ID ${id}:`, deleteErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal menghapus mutasi pending",
+        statusMessage: "Database Error",
+        message: "Gagal menghapus mutasi pending",
       });
     }
 
@@ -269,14 +286,16 @@ export const SimpananService = {
         if (!mutasi) {
           throw createError({
             statusCode: 404,
-            statusMessage: "Data mutasi simpanan tidak ditemukan",
+            statusMessage: "Not Found",
+            message: "Data mutasi simpanan tidak ditemukan",
           });
         }
 
         if (mutasi.statusApproved !== "pending") {
           throw createError({
             statusCode: 400,
-            statusMessage: "Transaksi ini sudah diproses sebelumnya",
+            statusMessage: "Validation Error",
+            message: "Transaksi ini sudah diproses sebelumnya",
           });
         }
 
@@ -305,7 +324,8 @@ export const SimpananService = {
           if (effectiveSaldoAtApproval < mutasi.nilaiTransaksi) {
             throw createError({
               statusCode: 400,
-              statusMessage: `Saldo efektif tidak mencukupi untuk approval penarikan ini. Saldo Tabungan: Rp ${currentTabungan.toLocaleString("id-ID")}, Penarikan Pending Lainnya: Rp ${otherPending.toLocaleString("id-ID")}, Efektif: Rp ${effectiveSaldoAtApproval.toLocaleString("id-ID")}`,
+              statusMessage: "Validation Error",
+              message: `Saldo efektif tidak mencukupi untuk approval penarikan ini. Saldo Tabungan: Rp ${currentTabungan.toLocaleString("id-ID")}, Penarikan Pending Lainnya: Rp ${otherPending.toLocaleString("id-ID")}, Efektif: Rp ${effectiveSaldoAtApproval.toLocaleString("id-ID")}`,
             });
           }
 
@@ -404,7 +424,8 @@ export const SimpananService = {
       console.error(`Gagal approve mutasi ID ${id}:`, txErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal menyetujui mutasi",
+        statusMessage: "Database Error",
+        message: "Gagal menyetujui mutasi",
       });
     }
 
@@ -417,21 +438,24 @@ export const SimpananService = {
       console.error(`Gagal mencari mutasi ID ${id}:`, findErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mencari data mutasi",
+        statusMessage: "Database Error",
+        message: "Gagal mencari data mutasi",
       });
     }
 
     if (!mutasi) {
       throw createError({
         statusCode: 404,
-        statusMessage: "Data mutasi simpanan tidak ditemukan",
+        statusMessage: "Not Found",
+        message: "Data mutasi simpanan tidak ditemukan",
       });
     }
 
     if (mutasi.statusApproved !== "pending") {
       throw createError({
         statusCode: 400,
-        statusMessage: "Transaksi ini sudah diproses sebelumnya",
+        statusMessage: "Validation Error",
+        message: "Transaksi ini sudah diproses sebelumnya",
       });
     }
 
@@ -449,7 +473,8 @@ export const SimpananService = {
       console.error(`Gagal reject mutasi ID ${id}:`, updateErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal menolak mutasi",
+        statusMessage: "Database Error",
+        message: "Gagal menolak mutasi",
       });
     }
 

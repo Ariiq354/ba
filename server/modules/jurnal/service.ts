@@ -11,7 +11,8 @@ export const JurnalService = {
       console.error("Gagal mengambil data jurnal paginated:", err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mengambil data transaksi jurnal",
+        statusMessage: "Database Error",
+        message: "Gagal mengambil data transaksi jurnal",
       });
     }
     return result;
@@ -23,14 +24,16 @@ export const JurnalService = {
       console.error(`Gagal mencari jurnal ID ${id}:`, err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mengambil data transaksi jurnal",
+        statusMessage: "Database Error",
+        message: "Gagal mengambil data transaksi jurnal",
       });
     }
 
     if (!item) {
       throw createError({
         statusCode: 404,
-        statusMessage: "Data transaksi jurnal tidak ditemukan",
+        statusMessage: "Not Found",
+        message: "Data transaksi jurnal tidak ditemukan",
       });
     }
 
@@ -45,7 +48,8 @@ export const JurnalService = {
       console.error("Gagal membuat kode transaksi jurnal:", codeErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal membuat nomor transaksi jurnal",
+        statusMessage: "Database Error",
+        message: "Gagal membuat nomor transaksi jurnal",
       });
     }
 
@@ -82,7 +86,8 @@ export const JurnalService = {
       console.error("Gagal menyimpan transaksi jurnal:", txErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal menyimpan transaksi jurnal",
+        statusMessage: "Database Error",
+        message: "Gagal menyimpan transaksi jurnal",
       });
     }
 
@@ -95,14 +100,16 @@ export const JurnalService = {
       console.error(`Gagal memeriksa keberadaan jurnal ID ${id}:`, findErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal memeriksa data jurnal",
+        statusMessage: "Database Error",
+        message: "Gagal memeriksa data jurnal",
       });
     }
 
     if (!existing) {
       throw createError({
         statusCode: 404,
-        statusMessage: "Data transaksi jurnal tidak ditemukan",
+        statusMessage: "Not Found",
+        message: "Data transaksi jurnal tidak ditemukan",
       });
     }
 
@@ -111,7 +118,8 @@ export const JurnalService = {
       console.error(`Gagal menghapus jurnal ID ${id}:`, deleteErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal menghapus data transaksi jurnal",
+        statusMessage: "Database Error",
+        message: "Gagal menghapus data transaksi jurnal",
       });
     }
 
@@ -124,7 +132,8 @@ export const JurnalService = {
       console.error("Gagal menghapus transaksi jurnal secara massal:", err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal menghapus transaksi jurnal",
+        statusMessage: "Database Error",
+        message: "Gagal menghapus transaksi jurnal",
       });
     }
     return { success: true };

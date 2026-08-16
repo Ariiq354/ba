@@ -10,7 +10,8 @@ export default defineEventHandler(async (event) => {
   if (Number.isNaN(id)) {
     throw createError({
       statusCode: 400,
-      statusMessage: "ID tidak valid",
+      statusMessage: "Validation Error",
+      message: "ID transaksi jurnal tidak valid",
     });
   }
 

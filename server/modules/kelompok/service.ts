@@ -9,7 +9,8 @@ export const KelompokService = {
       console.error("Gagal mengambil data opsi kelompok:", err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mengambil data kelompok",
+        statusMessage: "Database Error",
+        message: "Gagal mengambil data opsi kelompok",
       });
     }
     return data;

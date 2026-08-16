@@ -9,7 +9,8 @@ export const WilayahService = {
       console.error("Gagal mengambil data provinsi:", err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mengambil data provinsi",
+        statusMessage: "Database Error",
+        message: "Gagal mengambil data provinsi",
       });
     }
     return data;
@@ -21,7 +22,8 @@ export const WilayahService = {
       console.error(`Gagal mengambil data kota untuk provinsi ${idProvinsi}:`, err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mengambil data kota",
+        statusMessage: "Database Error",
+        message: "Gagal mengambil data kota",
       });
     }
     return data;
@@ -33,7 +35,8 @@ export const WilayahService = {
       console.error(`Gagal mengambil data kecamatan untuk kota ${idKota}:`, err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mengambil data kecamatan",
+        statusMessage: "Database Error",
+        message: "Gagal mengambil data kecamatan",
       });
     }
     return data;
@@ -45,7 +48,8 @@ export const WilayahService = {
       console.error(`Gagal mengambil data kelurahan untuk kecamatan ${idKecamatan}:`, err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mengambil data kelurahan",
+        statusMessage: "Database Error",
+        message: "Gagal mengambil data kelurahan",
       });
     }
     return data;

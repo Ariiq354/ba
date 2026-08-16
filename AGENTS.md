@@ -26,5 +26,5 @@ Feature modules (`app/features/*`) must strictly adhere to ADR 0001 (`docs/adr/0
 Server modules (`server/modules/*`) and API endpoints (`server/api/*`) must strictly adhere to ADR 0002 (`docs/adr/0002-server-module-architecture.md`):
 
 - **Repository**: Pure async DB queries via Drizzle ORM accepting optional `client: DbClient = db` (`typeof db | Tx`).
-- **Service & `catchError`**: Business logic, validations, and transactions (`db.transaction(async (tx) => { ... })`) live in services. Wrap async calls with `const [err, data] = await catchError(...)`. Throw `createError({ statusCode, statusMessage })` directly.
+- **Service & `catchError`**: Business logic, validations, and transactions (`db.transaction(async (tx) => { ... })`) live in services. Wrap async calls with `const [err, data] = await catchError(...)`. Throw standard 3-property `createError({ statusCode, statusMessage, message })` directly (`statusMessage` for short category, `message` for user-facing detail).
 - **Thin Controllers**: Event handlers in `server/api/v1/*` validate request data, enforce auth guards, and return service calls directly: `return await MyService.method(...)`.

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { FormSubmitEvent } from "@nuxt/ui";
 import { z } from "zod";
-import { useToastError, useToastSuccess } from "~/composables/toast";
+import { extractErrorMessage, useToastError, useToastSuccess } from "~/composables/toast";
 import { useUploadFile } from "~/composables/upload";
 import InputFile from "../input/InputFile.vue";
 import SelectKecamatan from "../select/SelectKecamatan.vue";
@@ -96,8 +96,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     emit("close");
   }
   catch (err: unknown) {
-    const errorObj = err as { data?: { message?: string }; message?: string };
-    useToastError("Gagal", errorObj?.data?.message || errorObj?.message || "Gagal memperbarui profil");
+    useToastError("Gagal", extractErrorMessage(err, "Gagal memperbarui profil"));
   }
   finally {
     isLoading.value = false;

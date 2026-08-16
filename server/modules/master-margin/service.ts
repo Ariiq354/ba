@@ -11,7 +11,8 @@ export const MasterMarginService = {
       console.error("Gagal membuat data margin:", err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal membuat data margin",
+        statusMessage: "Database Error",
+        message: "Gagal membuat data margin",
       });
     }
     return created;
@@ -23,7 +24,8 @@ export const MasterMarginService = {
       console.error("Gagal mengambil data paginasi margin:", err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mengambil data margin",
+        statusMessage: "Database Error",
+        message: "Gagal mengambil data margin",
       });
     }
     return result;
@@ -35,14 +37,16 @@ export const MasterMarginService = {
       console.error(`Gagal memperbarui margin dengan ID ${id}:`, updateErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal memperbarui data margin",
+        statusMessage: "Database Error",
+        message: "Gagal memperbarui data margin",
       });
     }
 
     if (!updated) {
       throw createError({
         statusCode: 404,
-        statusMessage: "Data margin tidak ditemukan",
+        statusMessage: "Not Found",
+        message: "Data margin tidak ditemukan",
       });
     }
 
@@ -55,7 +59,8 @@ export const MasterMarginService = {
       console.error("Gagal menghapus data margin:", err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal menghapus data margin",
+        statusMessage: "Database Error",
+        message: "Gagal menghapus data margin",
       });
     }
     return deleted;

@@ -10,7 +10,8 @@ export default defineEventHandler(async (event) => {
   if (!id || Number.isNaN(id)) {
     throw createError({
       statusCode: 400,
-      statusMessage: "ID mutasi tidak valid",
+      statusMessage: "Validation Error",
+      message: "ID mutasi tidak valid",
     });
   }
 

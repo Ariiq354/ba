@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import DataTable from "~/components/table/DataTable.vue";
 import { openModal } from "~/composables/modal";
-import { useToastError, useToastSuccess } from "~/composables/toast";
+import { extractErrorMessage, useToastError, useToastSuccess } from "~/composables/toast";
 import { formatDateShort, formatRupiah } from "~/utils/formatter";
 import ModalRejectMutasi from "./components/ModalRejectMutasi.vue";
 import { approvalMutasiColumns } from "./model";
@@ -51,10 +51,10 @@ async function handleApprove(id: number, kodeTransaksi: string) {
     useToastSuccess("Berhasil Disetujui", `Transaksi ${kodeTransaksi} berhasil di-approve dan jurnal telah diposting.`);
     refresh();
   }
-  catch (error: any) {
+  catch (error: unknown) {
     useToastError(
       "Gagal Menyetujui",
-      error?.data?.statusMessage || error?.data?.message || "Terjadi kesalahan saat menyetujui transaksi.",
+      extractErrorMessage(error, "Terjadi kesalahan saat menyetujui transaksi."),
     );
   }
   finally {

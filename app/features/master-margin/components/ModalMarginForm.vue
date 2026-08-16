@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { FormSubmitEvent } from "@nuxt/ui";
 import type { MarginFormSchema, MarginItem } from "../model";
-import { useToastError, useToastSuccess } from "~/composables/toast";
+import { extractErrorMessage, useToastError, useToastSuccess } from "~/composables/toast";
 import { marginSchema } from "../model";
 
 const props = defineProps<{
@@ -49,8 +49,8 @@ async function onSubmit(event: FormSubmitEvent<MarginFormSchema>) {
     props.refresh?.();
     emit("close");
   }
-  catch (error: any) {
-    useToastError("Gagal", error?.data?.message || "Terjadi kesalahan saat menyimpan data.");
+  catch (error: unknown) {
+    useToastError("Gagal", extractErrorMessage(error, "Terjadi kesalahan saat menyimpan data."));
   }
   finally {
     isLoading.value = false;

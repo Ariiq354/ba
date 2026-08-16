@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useToastError, useToastSuccess } from "~/composables/toast";
+import { extractErrorMessage, useToastError, useToastSuccess } from "~/composables/toast";
 import { rejectMutasiSchema } from "../model";
 
 const props = defineProps<{
@@ -37,10 +37,10 @@ async function handleSubmit() {
     props.refresh?.();
     emit("close");
   }
-  catch (error: any) {
+  catch (error: unknown) {
     useToastError(
       "Gagal Menolak",
-      error?.data?.statusMessage || error?.data?.message || "Terjadi kesalahan saat menolak transaksi.",
+      extractErrorMessage(error, "Terjadi kesalahan saat menolak transaksi."),
     );
   }
   finally {

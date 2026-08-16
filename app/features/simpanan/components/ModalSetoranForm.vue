@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useToastError, useToastSuccess } from "~/composables/toast";
+import { extractErrorMessage, useToastError, useToastSuccess } from "~/composables/toast";
 import { AKTIVA_OPTIONS, setoranSchema } from "../model";
 
 const props = defineProps<{
@@ -42,10 +42,10 @@ async function handleSubmit() {
     props.refresh?.();
     emit("close");
   }
-  catch (error: any) {
+  catch (error: unknown) {
     useToastError(
       "Gagal Mengirim",
-      error?.data?.statusMessage || error?.data?.message || "Terjadi kesalahan saat membuat pengajuan setoran.",
+      extractErrorMessage(error, "Terjadi kesalahan saat membuat pengajuan setoran."),
     );
   }
   finally {

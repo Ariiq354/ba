@@ -12,21 +12,24 @@ export const FilesService = {
     if (!dirConfig) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Direktori unggahan tidak valid",
+        statusMessage: "Validation Error",
+        message: "Direktori unggahan tidak valid",
       });
     }
 
     if (input.filesize > dirConfig.maxSize) {
       throw createError({
         statusCode: 400,
-        statusMessage: `Ukuran file melebihi batas maksimum (${dirConfig.maxSize / 1024 / 1024}MB)`,
+        statusMessage: "Validation Error",
+        message: `Ukuran file melebihi batas maksimum (${dirConfig.maxSize / 1024 / 1024}MB)`,
       });
     }
 
     if (!dirConfig.allowedMimeTypes.includes(input.fileType)) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Tipe file tidak didukung",
+        statusMessage: "Validation Error",
+        message: "Tipe file tidak didukung",
       });
     }
 
@@ -37,7 +40,8 @@ export const FilesService = {
       console.error("Gagal mendapatkan presigned URL dari S3:", s3Err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal membuat URL unggahan",
+        statusMessage: "Storage Error",
+        message: "Gagal membuat URL unggahan file",
       });
     }
 
@@ -55,7 +59,8 @@ export const FilesService = {
       console.error("Gagal menyimpan data pending file ke DB:", dbErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mencatat data file",
+        statusMessage: "Database Error",
+        message: "Gagal mencatat data file ke database",
       });
     }
 
@@ -71,7 +76,8 @@ export const FilesService = {
       console.error("Gagal mengambil data pending files:", findErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mengambil data pending files",
+        statusMessage: "Database Error",
+        message: "Gagal mengambil data pending files",
       });
     }
 
@@ -95,7 +101,8 @@ export const FilesService = {
       console.error("Gagal menghapus file dari database:", deleteErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal menghapus catatan file",
+        statusMessage: "Database Error",
+        message: "Gagal menghapus catatan file",
       });
     }
 

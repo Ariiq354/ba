@@ -2,7 +2,7 @@
 import type { FormDetailLine } from "../model";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import InputCalendar from "~/components/input/InputCalendar.vue";
-import { useToastError, useToastSuccess } from "~/composables/toast";
+import { extractErrorMessage, useToastError, useToastSuccess } from "~/composables/toast";
 import { formatRupiah } from "../model";
 
 const props = defineProps<{
@@ -122,10 +122,10 @@ async function handleSubmit() {
     props.refresh?.();
     emit("close");
   }
-  catch (error: any) {
+  catch (error: unknown) {
     useToastError(
       "Gagal Menyimpan",
-      error?.data?.statusMessage || error?.data?.message || "Terjadi kesalahan saat menyimpan transaksi.",
+      extractErrorMessage(error, "Terjadi kesalahan saat menyimpan transaksi."),
     );
   }
   finally {

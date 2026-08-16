@@ -15,7 +15,8 @@ export const UserService = {
     if (data.imageAction === "update" && !newImage) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Image baru diperlukan",
+        statusMessage: "Validation Error",
+        message: "Foto profil baru wajib diisi untuk tindakan update",
       });
     }
 
@@ -29,7 +30,8 @@ export const UserService = {
       console.error("Gagal memperbarui profil user di DB:", txErr);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal memperbarui profil pengguna",
+        statusMessage: "Database Error",
+        message: "Gagal memperbarui data profil pengguna",
       });
     }
 
@@ -53,14 +55,16 @@ export const UserService = {
       console.error(`Gagal mengambil profil user ${userId}:`, err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mengambil data profil",
+        statusMessage: "Database Error",
+        message: "Gagal mengambil data profil pengguna",
       });
     }
 
     if (!profile) {
       throw createError({
         statusCode: 404,
-        statusMessage: "User tidak ditemukan",
+        statusMessage: "Not Found",
+        message: "Data profil pengguna tidak ditemukan",
       });
     }
 
@@ -74,14 +78,16 @@ export const UserService = {
         if (!targetUser) {
           throw createError({
             statusCode: 404,
-            statusMessage: "User tidak ditemukan",
+            statusMessage: "Not Found",
+            message: "Pengguna tidak ditemukan",
           });
         }
 
         if (!targetUser.banned) {
           throw createError({
             statusCode: 400,
-            statusMessage: "User sudah terverifikasi",
+            statusMessage: "Validation Error",
+            message: "Akun pengguna sudah terverifikasi sebelumnya",
           });
         }
 
@@ -98,7 +104,8 @@ export const UserService = {
       console.error(`Gagal memverifikasi user ${userId}:`, err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal memverifikasi akun pengguna",
+        statusMessage: "Database Error",
+        message: "Gagal memverifikasi akun pengguna",
       });
     }
 
@@ -112,21 +119,24 @@ export const UserService = {
         if (!targetUser) {
           throw createError({
             statusCode: 404,
-            statusMessage: "User tidak ditemukan",
+            statusMessage: "Not Found",
+            message: "Pengguna tidak ditemukan",
           });
         }
 
         if (targetUser.role === "admin") {
           throw createError({
             statusCode: 400,
-            statusMessage: "User dengan role Admin tidak dapat diubah menjadi PJ",
+            statusMessage: "Validation Error",
+            message: "Pengguna dengan role Admin tidak dapat dijadikan PJ kelompok",
           });
         }
 
         if (targetUser.banned) {
           throw createError({
             statusCode: 400,
-            statusMessage: "User belum terverifikasi, tidak bisa dijadikan PJ",
+            statusMessage: "Validation Error",
+            message: "Pengguna belum terverifikasi, tidak dapat dijadikan PJ kelompok",
           });
         }
 
@@ -146,7 +156,8 @@ export const UserService = {
       console.error(`Gagal mengubah status PJ user ${userId}:`, err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mengubah penanggung jawab",
+        statusMessage: "Database Error",
+        message: "Gagal mengubah penanggung jawab kelompok",
       });
     }
 
@@ -159,7 +170,8 @@ export const UserService = {
       console.error("Gagal mengambil data paginasi user:", err);
       throw createError({
         statusCode: 500,
-        statusMessage: "Gagal mengambil daftar pengguna",
+        statusMessage: "Database Error",
+        message: "Gagal mengambil daftar pengguna",
       });
     }
     return result;
