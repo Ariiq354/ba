@@ -22,7 +22,6 @@
     "@vueuse/nuxt": "14.4.0",
     "better-auth": "^1.7.0-rc.5",
     "drizzle-orm": "^1.0.0-rc.5-ab785fc",
-    "neverthrow": "^8.2.0",
     "nuxt": "^4.5.2",
     "nuxt-charts": "^2.2.0",
     "nuxt-security": "2.6.0",

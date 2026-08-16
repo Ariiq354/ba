@@ -69,6 +69,6 @@ See [`docs/adr/0001-feature-module-architecture.md`](file:///home/danubis/Projec
 
 See [`docs/adr/0002-server-module-architecture.md`](file:///home/danubis/Projects/ba/docs/adr/0002-server-module-architecture.md) for full details. All agents modifying or adding server code must adhere to:
 
-1. **Neverthrow Implicit Type Inference**: Use `errAsync({ code: "...", message: "..." } as const)` for domain errors. Avoid explicit error interface types; rely on TypeScript implicit return type inference.
-2. **Drizzle Transaction Rollback**: Throw `new Error("CODE: message")` inside `db.transaction(...)` for clean rollback and ESLint `no-throw-literal` compliance. Map cause to `{ code: "CODE", message: "..." } as const` in `ResultAsync.fromPromise(..., (cause) => ...)`.
-3. **API Route Error Matching**: Endpoint handlers in `server/api/v1/*` must consume services using `.match(data => data, (err) => { switch (err.code) { ... } })` mapping error codes to HTTP status codes via `createError()`.
+1. **Repository Layer (`repo.ts`)**: Pure async DB queries via Drizzle ORM returning Promises. All repo functions accept an optional `client: DbClient = db` (`typeof db | Tx`).
+2. **Service Layer (`service.ts`)**: Encapsulates business logic, validation, and transactions (`db.transaction(async (tx) => { ... })`). Async operations are handled with `const [err, data] = await catchError(...)` (`server/utils/error.ts`). Services directly throw `createError({ statusCode, statusMessage })` on domain/DB errors.
+3. **API Layer (`server/api/v1/*`)**: Thin route handlers that validate input (`readValidatedBodySafe`, `getValidatedQuerySafe`), check guards (`authGuard`, `adminGuard`), and return service results directly: `return await MyService.method(...)`.

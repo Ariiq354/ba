@@ -1,29 +1,46 @@
+import type { DbClient } from "~~/server/database";
 import type { PaginationSchema } from "~~/server/utils/schema";
 import type { CreateSahamSchema } from "./model";
 import { count, desc, eq } from "drizzle-orm";
-import { ResultAsync } from "neverthrow";
 import { db } from "~~/server/database";
 import { user } from "~~/server/database/schema/auth";
 import { saham } from "~~/server/database/schema/master";
 
 export const MasterSahamRepo = {
-  create(userId: number, data: CreateSahamSchema) {
-    return ResultAsync.fromPromise(
-      db
-        .insert(saham)
-        .values({
-          hargaNominal: data.hargaNominal,
-          hargaJual: data.hargaJual,
-          updatedBy: userId,
-        })
-        .returning(),
-      cause => ({ code: "DATABASE_ERROR", cause } as const),
-    ).map(rows => rows[0]);
+  async create(userId: number, data: CreateSahamSchema, client: DbClient = db) {
+    const rows = await client
+      .insert(saham)
+      .values({
+        hargaNominal: data.hargaNominal,
+        hargaJual: data.hargaJual,
+        updatedBy: userId,
+      })
+      .returning();
+    return rows[0];
   },
 
-  getLatest() {
-    return ResultAsync.fromPromise(
-      db
+  async getLatest(client: DbClient = db) {
+    const rows = await client
+      .select({
+        id: saham.id,
+        hargaNominal: saham.hargaNominal,
+        hargaJual: saham.hargaJual,
+        updatedBy: saham.updatedBy,
+        createdAt: saham.createdAt,
+        updatedByName: user.name,
+      })
+      .from(saham)
+      .leftJoin(user, eq(user.id, saham.updatedBy))
+      .orderBy(desc(saham.createdAt), desc(saham.id))
+      .limit(1);
+    return rows[0] ?? null;
+  },
+
+  async getPaginated(query: PaginationSchema, client: DbClient = db) {
+    const offset = (query.page - 1) * query.limit;
+
+    const [items, totalRows] = await Promise.all([
+      client
         .select({
           id: saham.id,
           hargaNominal: saham.hargaNominal,
@@ -35,43 +52,21 @@ export const MasterSahamRepo = {
         .from(saham)
         .leftJoin(user, eq(user.id, saham.updatedBy))
         .orderBy(desc(saham.createdAt), desc(saham.id))
-        .limit(1)
-        .then(rows => rows[0] ?? null),
-      cause => ({ code: "DATABASE_ERROR", cause } as const),
-    );
-  },
+        .limit(query.limit)
+        .offset(offset),
+      client
+        .select({ total: count() })
+        .from(saham),
+    ]);
 
-  getPaginated(query: PaginationSchema) {
-    const offset = (query.page - 1) * query.limit;
+    const total = totalRows[0]?.total ?? 0;
 
-    return ResultAsync.fromPromise(
-      Promise.all([
-        db
-          .select({
-            id: saham.id,
-            hargaNominal: saham.hargaNominal,
-            hargaJual: saham.hargaJual,
-            updatedBy: saham.updatedBy,
-            createdAt: saham.createdAt,
-            updatedByName: user.name,
-          })
-          .from(saham)
-          .leftJoin(user, eq(user.id, saham.updatedBy))
-          .orderBy(desc(saham.createdAt), desc(saham.id))
-          .limit(query.limit)
-          .offset(offset),
-        db
-          .select({ total: count() })
-          .from(saham)
-          .then(rows => rows[0]?.total ?? 0),
-      ]).then(([items, total]) => ({
-        items,
-        total,
-        page: query.page,
-        limit: query.limit,
-        totalPages: Math.ceil(total / query.limit),
-      })),
-      cause => ({ code: "DATABASE_ERROR", cause } as const),
-    );
+    return {
+      items,
+      total,
+      page: query.page,
+      limit: query.limit,
+      totalPages: Math.ceil(total / query.limit),
+    };
   },
 };

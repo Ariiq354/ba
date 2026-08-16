@@ -1,4 +1,3 @@
-import { createError } from "h3";
 import { getMutasiQuerySchema } from "~~/server/modules/simpanan/model";
 import { SimpananService } from "~~/server/modules/simpanan/service";
 import { authGuard } from "~~/server/utils/guard";
@@ -14,14 +13,5 @@ export default defineEventHandler(async (event) => {
     userId: user.role === "admin" ? (rawQuery.userId ?? user.id) : user.id,
   };
 
-  return await SimpananService.getPaginatedMutasi(query).match(
-    data => data,
-    (err) => {
-      console.error(err);
-      throw createError({
-        statusCode: 500,
-        statusMessage: "Database Error",
-      });
-    },
-  );
+  return await SimpananService.getPaginatedMutasi(query);
 });

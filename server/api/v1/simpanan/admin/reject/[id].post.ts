@@ -17,29 +17,5 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readValidatedBodySafe(event, rejectMutasiSchema);
-
-  return await SimpananService.rejectMutasi(id, adminUser.id, body).match(
-    data => data,
-    (err) => {
-      switch (err.code) {
-        case "NOT_FOUND":
-          throw createError({
-            statusCode: 404,
-            statusMessage: err.message,
-          });
-        case "ALREADY_PROCESSED":
-          throw createError({
-            statusCode: 400,
-            statusMessage: err.message,
-          });
-        case "DATABASE_ERROR":
-        default:
-          console.error(err);
-          throw createError({
-            statusCode: 500,
-            statusMessage: "Gagal menolak mutasi",
-          });
-      }
-    },
-  );
+  return await SimpananService.rejectMutasi(id, adminUser.id, body);
 });

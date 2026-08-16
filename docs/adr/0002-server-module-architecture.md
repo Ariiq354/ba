@@ -1,55 +1,91 @@
 # ADR 0002: Server Module & API Architecture Conventions
 
-- **Status**: Accepted
-- **Date**: 2026-08-13
+- **Status**: Accepted (Updated 2026-08-16: Migrated from Neverthrow to standard Go-style `catchError` tuple + Service `createError` pattern)
+- **Date**: 2026-08-13 (Revised 2026-08-16)
 
 ## Context
 
-Server modules (`server/modules/*`) and API handlers (`server/api/v1/*`) previously lacked explicit conventions for error handling and type inference:
-
-1. Neverthrow error returns were constructed inconsistently (e.g. using `ResultAsync.fromPromise(Promise.reject(...))` anti-patterns or custom explicit types).
-2. Drizzle database transactions threw raw literal objects (`throw { code, message }`), violating ESLint rules (`no-throw-literal`) and producing untyped transaction rejections.
-3. Server API handlers had duplicated, defensive `typeof err === "object"` checks instead of clean pattern matching on error codes.
+Previous server architecture relied on `neverthrow` (`ResultAsync`, `.match()`), which introduced excessive verbosity and boilerplate in service methods and API endpoint handlers.
 
 ## Decisions
 
-To enforce type safety, clean code, and consistency across all server code (`server/modules/*` and `server/api/*`), developers and agents MUST adhere to these 3 rules:
+To enforce clean separation of concerns, explicit error reporting, and lightweight API controllers across all server code (`server/modules/*` and `server/api/*`), developers and agents MUST adhere to these conventions:
 
-### 1. Neverthrow Implicit Type Inference
+### 1. Module Layering (Repo, Service, API)
 
-- Use `errAsync({ code: "...", message: "..." } as const)` for returning domain error results.
-- **No Explicit Error Types**: Do NOT create manual interface/type aliases for module errors (e.g. `type MyModuleError`). Let TypeScript infer error unions implicitly from `repo.ts` to `service.ts` up to server API handlers.
+- **Repository (`server/modules/<module>/repo.ts`)**:
+  - Pure database calls via Drizzle ORM returning Promises.
+  - No HTTP or business logic exceptions thrown in Repo (only DB interactions).
+  - All Repo functions accept an optional `client: DbClient = db` parameter (where `DbClient = typeof db | Tx`) so transactions can be orchestrated cleanly from the Service layer.
 
-### 2. Transaction Error Rollback & Mapping (`db.transaction`)
+- **Service (`server/modules/<module>/service.ts`)**:
+  - Encapsulates all business logic, validation, and multi-step transaction orchestration (`db.transaction(async (tx) => { ... })`).
+  - Wraps async calls with `const [err, data] = await catchError(promise)` (`server/utils/error.ts`).
+  - Directly throws `createError({ statusCode, statusMessage })` on domain validations or database failures with explicit context and HTTP status codes (400, 404, 403, 500).
 
-- Inside Drizzle `db.transaction(async (tx) => { ... })`, throw standard Error instances with formatted message strings when validation fails: `throw new Error("ERROR_CODE: Error message detail")`. This ensures Drizzle automatically rolls back the transaction while remaining compliant with ESLint `no-throw-literal`.
-- In `ResultAsync.fromPromise(..., (cause) => ...)`, map cause instances matching `"CODE: message"` back to typed object literals: `{ code: "ERROR_CODE", message: "Error message detail" } as const`.
+- **API Endpoints (`server/api/v1/*`)**:
+  - Thin controllers that extract & validate inputs (`readValidatedBodySafe`, `getValidatedQuerySafe`), enforce authentication (`authGuard`, `adminGuard`), and return service calls directly: `return await MyService.method(...)`.
+  - Nuxt / H3 automatically handles errors thrown by `createError()` from services.
 
-### 3. API Route Handler Error Matching
-
-- All server API event handlers (`server/api/v1/*`) MUST consume Neverthrow results using `.match()`:
+### 2. Standard `catchError` Usage in Service Layer
 
 ```ts
-return await SimpananService.getSaldo(userId).match(
-  data => data,
-  (err) => {
-    switch (err.code) {
-      case "NOT_FOUND":
-        throw createError({ statusCode: 404, statusMessage: err.message });
-      case "INSUFFICIENT_BALANCE":
-      case "ALREADY_PROCESSED":
-        throw createError({ statusCode: 400, statusMessage: err.message });
-      case "DATABASE_ERROR":
-      default:
-        console.error(err);
-        throw createError({ statusCode: 500, statusMessage: "Internal server error" });
+import { createError } from "h3";
+import { catchError } from "~~/server/utils/error";
+import { MyRepo } from "./repo";
+
+export const MyService = {
+  async getById(id: number) {
+    const [err, item] = await catchError(MyRepo.findById(id));
+    if (err) {
+      console.error(`Gagal mencari data ID ${id}:`, err);
+      throw createError({
+        statusCode: 500,
+        statusMessage: "Gagal mengambil data",
+      });
     }
+
+    if (!item) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: "Data tidak ditemukan",
+      });
+    }
+
+    return item;
   },
+};
+```
+
+### 3. Transaction Orchestration in Service Layer
+
+```ts
+const [txErr, result] = await catchError(
+  db.transaction(async (tx) => {
+    // Pass `tx` as client to repo methods
+    const item = await MyRepo.findById(id, tx);
+    if (!item) {
+      throw createError({ statusCode: 404, statusMessage: "Item not found" });
+    }
+    return await MyRepo.update(id, data, tx);
+  }),
 );
+
+if (txErr) {
+  if ("statusCode" in (txErr as any)) {
+    throw txErr;
+  }
+  console.error("Gagal menjalankan transaksi:", txErr);
+  throw createError({
+    statusCode: 500,
+    statusMessage: "Gagal memproses transaksi",
+  });
+}
 ```
 
 ## Consequences
 
-- End-to-end implicit type safety across server modules and API endpoints.
-- Zero ESLint errors (`no-throw-literal`, `prefer-promise-reject-errors`, unused variables).
-- Clean, predictable transaction rollback behavior and REST API HTTP status mapping.
+- Direct, clean, and concise API handlers without verbose `.match()` blocks.
+- Full type inference for Nuxt auto-generated client types.
+- Clear error handling with descriptive console logging and proper HTTP status codes.
+- Zero external monadic library overhead (removed `neverthrow`).

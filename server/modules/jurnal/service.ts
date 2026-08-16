@@ -1,39 +1,132 @@
 import type { CreateJurnalSchema, GetJurnalQuerySchema } from "./model";
-import { errAsync } from "neverthrow";
+import { createError } from "h3";
+import { db } from "~~/server/database";
+import { catchError } from "~~/server/utils/error";
 import { JurnalRepo } from "./repo";
 
 export const JurnalService = {
-  getPaginatedJurnal(query: GetJurnalQuerySchema) {
-    return JurnalRepo.getPaginated(query);
+  async getPaginatedJurnal(query: GetJurnalQuerySchema) {
+    const [err, result] = await catchError(JurnalRepo.getPaginated(query));
+    if (err) {
+      console.error("Gagal mengambil data jurnal paginated:", err);
+      throw createError({
+        statusCode: 500,
+        statusMessage: "Gagal mengambil data transaksi jurnal",
+      });
+    }
+    return result;
   },
 
-  getJurnalById(id: number) {
-    return JurnalRepo.findById(id).andThen((item) => {
-      if (!item) {
-        return errAsync({
-          code: "JURNAL_NOT_FOUND",
-          message: "Data transaksi jurnal tidak ditemukan",
-        } as const);
-      }
-      return JurnalRepo.findById(id);
-    });
+  async getJurnalById(id: number) {
+    const [err, item] = await catchError(JurnalRepo.findById(id));
+    if (err) {
+      console.error(`Gagal mencari jurnal ID ${id}:`, err);
+      throw createError({
+        statusCode: 500,
+        statusMessage: "Gagal mengambil data transaksi jurnal",
+      });
+    }
+
+    if (!item) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: "Data transaksi jurnal tidak ditemukan",
+      });
+    }
+
+    return item;
   },
 
-  createJurnal(data: CreateJurnalSchema, userId: number) {
-    return JurnalRepo.generateNextKodeTransaksi(data.tanggalTransaksi).andThen((autoCode) => {
-      return JurnalRepo.create(data, userId, autoCode);
-    });
+  async createJurnal(data: CreateJurnalSchema, userId: number) {
+    const [codeErr, autoCode] = await catchError(
+      JurnalRepo.generateNextKodeTransaksi(data.tanggalTransaksi),
+    );
+    if (codeErr || !autoCode) {
+      console.error("Gagal membuat kode transaksi jurnal:", codeErr);
+      throw createError({
+        statusCode: 500,
+        statusMessage: "Gagal membuat nomor transaksi jurnal",
+      });
+    }
+
+    const [txErr, created] = await catchError(
+      db.transaction(async (tx) => {
+        const header = await JurnalRepo.createHeader(
+          {
+            kodeTransaksi: autoCode,
+            tanggalTransaksi: data.tanggalTransaksi,
+            keterangan: data.keterangan || null,
+            userId,
+          },
+          tx,
+        );
+
+        if (!header) {
+          throw new Error("Gagal membuat header jurnal");
+        }
+
+        const detailValues = data.details.map(d => ({
+          jurnalId: header.id,
+          akunId: d.akunId,
+          debit: Math.round(d.debit || 0),
+          kredit: Math.round(d.kredit || 0),
+        }));
+
+        const details = await JurnalRepo.insertDetails(detailValues, tx);
+
+        return { header, details };
+      }),
+    );
+
+    if (txErr) {
+      console.error("Gagal menyimpan transaksi jurnal:", txErr);
+      throw createError({
+        statusCode: 500,
+        statusMessage: "Gagal menyimpan transaksi jurnal",
+      });
+    }
+
+    return created;
   },
 
-  deleteJurnal(id: number) {
-    return JurnalRepo.findById(id).andThen((existing) => {
-      if (!existing) {
-        return errAsync({
-          code: "JURNAL_NOT_FOUND",
-          message: "Data transaksi jurnal tidak ditemukan",
-        } as const);
-      }
-      return JurnalRepo.delete(id);
-    });
+  async deleteJurnal(id: number) {
+    const [findErr, existing] = await catchError(JurnalRepo.findById(id));
+    if (findErr) {
+      console.error(`Gagal memeriksa keberadaan jurnal ID ${id}:`, findErr);
+      throw createError({
+        statusCode: 500,
+        statusMessage: "Gagal memeriksa data jurnal",
+      });
+    }
+
+    if (!existing) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: "Data transaksi jurnal tidak ditemukan",
+      });
+    }
+
+    const [deleteErr] = await catchError(JurnalRepo.delete(id));
+    if (deleteErr) {
+      console.error(`Gagal menghapus jurnal ID ${id}:`, deleteErr);
+      throw createError({
+        statusCode: 500,
+        statusMessage: "Gagal menghapus data transaksi jurnal",
+      });
+    }
+
+    return { success: true };
+  },
+
+  async deleteBulkJurnal(ids: number[]) {
+    const [err] = await catchError(JurnalRepo.deleteBulk(ids));
+    if (err) {
+      console.error("Gagal menghapus transaksi jurnal secara massal:", err);
+      throw createError({
+        statusCode: 500,
+        statusMessage: "Gagal menghapus transaksi jurnal",
+      });
+    }
+    return { success: true };
   },
 };

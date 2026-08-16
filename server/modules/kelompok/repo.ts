@@ -1,11 +1,8 @@
-import { ResultAsync } from "neverthrow";
+import type { DbClient } from "~~/server/database";
 import { db } from "~~/server/database";
 
 export const KelompokRepo = {
-  getOptionsKelompok() {
-    return ResultAsync.fromPromise(
-      db.query.kelompok.findMany(),
-      cause => ({ code: "DATABASE_ERROR", cause } as const),
-    );
+  async getOptionsKelompok(client: DbClient = db) {
+    return await client.query.kelompok.findMany();
   },
 };

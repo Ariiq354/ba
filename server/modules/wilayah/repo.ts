@@ -1,57 +1,45 @@
-import { ResultAsync } from "neverthrow";
+import type { DbClient } from "~~/server/database";
 import { db } from "~~/server/database";
 
 export const WilayahRepo = {
-  getProvinsi() {
-    return ResultAsync.fromPromise(
-      db.query.provinsi.findMany({
-        orderBy: {
-          provinsi: "asc",
-        },
-      }),
-      cause => ({ code: "DATABASE_ERROR", cause } as const),
-    );
+  async getProvinsi(client: DbClient = db) {
+    return await client.query.provinsi.findMany({
+      orderBy: {
+        provinsi: "asc",
+      },
+    });
   },
 
-  getKotaByProvinsiId(idProvinsi: string) {
-    return ResultAsync.fromPromise(
-      db.query.kota.findMany({
-        where: {
-          idProvinsi,
-        },
-        orderBy: {
-          kota: "asc",
-        },
-      }),
-      cause => ({ code: "DATABASE_ERROR", cause } as const),
-    );
+  async getKotaByProvinsiId(idProvinsi: string, client: DbClient = db) {
+    return await client.query.kota.findMany({
+      where: {
+        idProvinsi,
+      },
+      orderBy: {
+        kota: "asc",
+      },
+    });
   },
 
-  getKecamatanByKotaId(idKota: string) {
-    return ResultAsync.fromPromise(
-      db.query.kecamatan.findMany({
-        where: {
-          idKota,
-        },
-        orderBy: {
-          kecamatan: "asc",
-        },
-      }),
-      cause => ({ code: "DATABASE_ERROR", cause } as const),
-    );
+  async getKecamatanByKotaId(idKota: string, client: DbClient = db) {
+    return await client.query.kecamatan.findMany({
+      where: {
+        idKota,
+      },
+      orderBy: {
+        kecamatan: "asc",
+      },
+    });
   },
 
-  getKelurahanByKecamatanId(idKecamatan: string) {
-    return ResultAsync.fromPromise(
-      db.query.kelurahan.findMany({
-        where: {
-          idKecamatan,
-        },
-        orderBy: {
-          kelurahan: "asc",
-        },
-      }),
-      cause => ({ code: "DATABASE_ERROR", cause } as const),
-    );
+  async getKelurahanByKecamatanId(idKecamatan: string, client: DbClient = db) {
+    return await client.query.kelurahan.findMany({
+      where: {
+        idKecamatan,
+      },
+      orderBy: {
+        kelurahan: "asc",
+      },
+    });
   },
 };

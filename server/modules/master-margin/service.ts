@@ -1,30 +1,63 @@
 import type { PaginationSchema } from "~~/server/utils/schema";
 import type { CreateMarginSchema, UpdateMarginSchema } from "./model";
-import { errAsync, okAsync } from "neverthrow";
+import { createError } from "h3";
+import { catchError } from "~~/server/utils/error";
 import { MasterMarginRepo } from "./repo";
 
 export const MasterMarginService = {
-  createMargin(data: CreateMarginSchema) {
-    return MasterMarginRepo.create(data);
+  async createMargin(data: CreateMarginSchema) {
+    const [err, created] = await catchError(MasterMarginRepo.create(data));
+    if (err) {
+      console.error("Gagal membuat data margin:", err);
+      throw createError({
+        statusCode: 500,
+        statusMessage: "Gagal membuat data margin",
+      });
+    }
+    return created;
   },
 
-  getPaginatedMargin(query: PaginationSchema) {
-    return MasterMarginRepo.getPaginated(query);
+  async getPaginatedMargin(query: PaginationSchema) {
+    const [err, result] = await catchError(MasterMarginRepo.getPaginated(query));
+    if (err) {
+      console.error("Gagal mengambil data paginasi margin:", err);
+      throw createError({
+        statusCode: 500,
+        statusMessage: "Gagal mengambil data margin",
+      });
+    }
+    return result;
   },
 
-  updateMargin(id: number, data: UpdateMarginSchema) {
-    return MasterMarginRepo.update(id, data).andThen((updated) => {
-      if (!updated) {
-        return errAsync({
-          code: "MARGIN_NOT_FOUND",
-          message: "Data margin tidak ditemukan",
-        } as const);
-      }
-      return okAsync(updated);
-    });
+  async updateMargin(id: number, data: UpdateMarginSchema) {
+    const [updateErr, updated] = await catchError(MasterMarginRepo.update(id, data));
+    if (updateErr) {
+      console.error(`Gagal memperbarui margin dengan ID ${id}:`, updateErr);
+      throw createError({
+        statusCode: 500,
+        statusMessage: "Gagal memperbarui data margin",
+      });
+    }
+
+    if (!updated) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: "Data margin tidak ditemukan",
+      });
+    }
+
+    return updated;
   },
 
-  deleteMargin(ids: number[]) {
-    return MasterMarginRepo.deleteBulk(ids);
+  async deleteMargin(ids: number[]) {
+    const [err, deleted] = await catchError(MasterMarginRepo.deleteBulk(ids));
+    if (err) {
+      console.error("Gagal menghapus data margin:", err);
+      throw createError({
+        statusCode: 500,
+        statusMessage: "Gagal menghapus data margin",
+      });
+    }
+    return deleted;
   },
 };

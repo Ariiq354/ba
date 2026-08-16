@@ -8,3 +8,6 @@ export const db = drizzle({
   },
   relations,
 });
+
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type DbClient = typeof db | Tx;

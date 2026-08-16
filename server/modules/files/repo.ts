@@ -1,56 +1,44 @@
+import type { DbClient } from "~~/server/database";
 import { eq, inArray } from "drizzle-orm";
-import { ResultAsync } from "neverthrow";
 import { db } from "~~/server/database";
 import { files } from "~~/server/database/schema/files";
 
 export const FilesRepo = {
-  createPendingFile(data: { publicId: string; filename: string; mimeType: string; size: number }) {
-    return ResultAsync.fromPromise(
-      db
-        .insert(files)
-        .values({
-          publicId: data.publicId,
-          filename: data.filename,
-          mimeType: data.mimeType,
-          size: data.size,
-          status: "pending",
-        }),
-      cause => ({ code: "DATABASE_ERROR", cause } as const),
-    );
+  async createPendingFile(
+    data: { publicId: string; filename: string; mimeType: string; size: number },
+    client: DbClient = db,
+  ) {
+    return await client
+      .insert(files)
+      .values({
+        publicId: data.publicId,
+        filename: data.filename,
+        mimeType: data.mimeType,
+        size: data.size,
+        status: "pending",
+      });
   },
 
-  promoteFile(publicId: string) {
-    return ResultAsync.fromPromise(
-      db
-        .update(files)
-        .set({ status: "success" })
-        .where(eq(files.publicId, publicId)),
-      cause => ({ code: "DATABASE_ERROR", cause } as const),
-    );
+  async promoteFile(publicId: string, client: DbClient = db) {
+    return await client
+      .update(files)
+      .set({ status: "success" })
+      .where(eq(files.publicId, publicId));
   },
 
-  getPendingFiles() {
-    return ResultAsync.fromPromise(
-      db
-        .select()
-        .from(files)
-        .where(eq(files.status, "pending")),
-      cause => ({ code: "DATABASE_ERROR", cause } as const),
-    );
+  async getPendingFiles(client: DbClient = db) {
+    return await client
+      .select()
+      .from(files)
+      .where(eq(files.status, "pending"));
   },
 
-  deleteFilesByPublicIds(publicIds: string[]) {
+  async deleteFilesByPublicIds(publicIds: string[], client: DbClient = db) {
     if (publicIds.length === 0) {
-      return ResultAsync.fromPromise(
-        Promise.resolve(),
-        cause => ({ code: "DATABASE_ERROR", cause } as const),
-      );
+      return;
     }
-    return ResultAsync.fromPromise(
-      db
-        .delete(files)
-        .where(inArray(files.publicId, publicIds)),
-      cause => ({ code: "DATABASE_ERROR", cause } as const),
-    );
+    return await client
+      .delete(files)
+      .where(inArray(files.publicId, publicIds));
   },
 };

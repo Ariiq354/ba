@@ -25,6 +25,6 @@ Feature modules (`app/features/*`) must strictly adhere to ADR 0001 (`docs/adr/0
 
 Server modules (`server/modules/*`) and API endpoints (`server/api/*`) must strictly adhere to ADR 0002 (`docs/adr/0002-server-module-architecture.md`):
 
-- **Neverthrow Inference**: Use `errAsync({ code: "...", message: "..." } as const)`. Do NOT create manual explicit error interface types; rely on end-to-end implicit TypeScript type inference.
-- **Drizzle Transactions**: Throw `new Error("CODE: message")` inside `db.transaction(...)` for automatic rollback and ESLint `no-throw-literal` compliance. Map cause to `{ code: "CODE", message: "..." } as const` in `fromPromise(..., cause => ...)`.
-- **API Error Matching**: Event handlers in `server/api/v1/*` must consume service calls with `.match(data => data, (err) => { switch (err.code) { ... } })` mapping domain error codes to HTTP status codes via `createError()`.
+- **Repository**: Pure async DB queries via Drizzle ORM accepting optional `client: DbClient = db` (`typeof db | Tx`).
+- **Service & `catchError`**: Business logic, validations, and transactions (`db.transaction(async (tx) => { ... })`) live in services. Wrap async calls with `const [err, data] = await catchError(...)`. Throw `createError({ statusCode, statusMessage })` directly.
+- **Thin Controllers**: Event handlers in `server/api/v1/*` validate request data, enforce auth guards, and return service calls directly: `return await MyService.method(...)`.

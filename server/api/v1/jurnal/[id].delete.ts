@@ -14,30 +14,5 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  return await JurnalService.deleteJurnal(id).match(
-    data => data,
-    (err) => {
-      switch (err.code) {
-        case "JURNAL_NOT_FOUND":
-          throw createError({
-            statusCode: 404,
-            statusMessage: err.message,
-          });
-
-        case "DATABASE_ERROR":
-          console.error(err.cause);
-          throw createError({
-            statusCode: 500,
-            statusMessage: "Database Error",
-          });
-
-        default: {
-          throw createError({
-            statusCode: 500,
-            statusMessage: "Unhandled error",
-          });
-        }
-      }
-    },
-  );
+  return await JurnalService.deleteJurnal(id);
 });

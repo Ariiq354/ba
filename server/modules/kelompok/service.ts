@@ -1,7 +1,17 @@
+import { createError } from "h3";
+import { catchError } from "~~/server/utils/error";
 import { KelompokRepo } from "./repo";
 
 export const KelompokService = {
-  getOptionsKelompok() {
-    return KelompokRepo.getOptionsKelompok();
+  async getOptionsKelompok() {
+    const [err, data] = await catchError(KelompokRepo.getOptionsKelompok());
+    if (err) {
+      console.error("Gagal mengambil data opsi kelompok:", err);
+      throw createError({
+        statusCode: 500,
+        statusMessage: "Gagal mengambil data kelompok",
+      });
+    }
+    return data;
   },
 };
