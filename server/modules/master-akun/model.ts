@@ -1,12 +1,11 @@
 import { z } from "zod";
+import { paginationSearchSchema } from "~~/server/utils/schema";
 
 export const kategoriAkunEnum = z.enum(["aktiva", "pasiva", "pendapatan", "biaya"]);
 export const normalBalanceEnum = z.enum(["debit", "kredit"]);
 
 export const getAkunQuerySchema = z.object({
-  page: z.coerce.number().default(1),
-  limit: z.coerce.number().default(10),
-  search: z.string().optional(),
+  ...paginationSearchSchema.shape,
   kategori: z.enum(["all", "aktiva", "pasiva", "pendapatan", "biaya"]).default("all"),
 });
 

@@ -1,7 +1,13 @@
-export async function catchError<T, E = Error>(
-  promise: Promise<T>,
-): Promise<[E, undefined] | [undefined, T]> {
-  return promise
-    .then(data => [undefined, data] as [undefined, T])
-    .catch((error: E) => [error, undefined] as [E, undefined]);
-}
+import { Data } from "effect";
+
+export class DatabaseError extends Data.TaggedError("DatabaseError")<{
+  readonly error: unknown;
+}> {}
+
+export class ItemNotFoundError extends Data.TaggedError("ItemNotFoundError")<{
+  readonly id: number;
+}> {}
+
+export class ItemsNotFoundError extends Data.TaggedError("ItemsNotFoundError")<{
+  readonly ids: number[];
+}> {}

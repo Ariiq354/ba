@@ -1,45 +1,43 @@
-import type { DbClient } from "~~/server/database";
+import { asc, eq } from "drizzle-orm";
+import { Effect } from "effect";
 import { db } from "~~/server/database";
+import { kecamatan, kelurahan, kota, provinsi } from "~~/server/database/schema/wilayah";
+import { DatabaseError } from "~~/server/utils/error";
 
 export const WilayahRepo = {
-  async getProvinsi(client: DbClient = db) {
-    return await client.query.provinsi.findMany({
-      orderBy: {
-        provinsi: "asc",
+  findProvinsi: Effect.fn("WilayahRepo.findProvinsi")(() =>
+    Effect.tryPromise({
+      try: async () => {
+        return await db.select().from(provinsi).orderBy(asc(provinsi.provinsi));
       },
-    });
-  },
+      catch: error => new DatabaseError({ error }),
+    }),
+  ),
 
-  async getKotaByProvinsiId(idProvinsi: string, client: DbClient = db) {
-    return await client.query.kota.findMany({
-      where: {
-        idProvinsi,
+  findKotaByProvinsiId: Effect.fn("WilayahRepo.findKotaByProvinsiId")((idProvinsi: string) =>
+    Effect.tryPromise({
+      try: async () => {
+        return await db.select().from(kota).where(eq(kota.idProvinsi, idProvinsi)).orderBy(asc(kota.kota));
       },
-      orderBy: {
-        kota: "asc",
-      },
-    });
-  },
+      catch: error => new DatabaseError({ error }),
+    }),
+  ),
 
-  async getKecamatanByKotaId(idKota: string, client: DbClient = db) {
-    return await client.query.kecamatan.findMany({
-      where: {
-        idKota,
+  findKecamatanByKotaId: Effect.fn("WilayahRepo.findKecamatanByKotaId")((idKota: string) =>
+    Effect.tryPromise({
+      try: async () => {
+        return await db.select().from(kecamatan).where(eq(kecamatan.idKota, idKota)).orderBy(asc(kecamatan.kecamatan));
       },
-      orderBy: {
-        kecamatan: "asc",
-      },
-    });
-  },
+      catch: error => new DatabaseError({ error }),
+    }),
+  ),
 
-  async getKelurahanByKecamatanId(idKecamatan: string, client: DbClient = db) {
-    return await client.query.kelurahan.findMany({
-      where: {
-        idKecamatan,
+  findKelurahanByKecamatanId: Effect.fn("WilayahRepo.findKelurahanByKecamatanId")((idKecamatan: string) =>
+    Effect.tryPromise({
+      try: async () => {
+        return await db.select().from(kelurahan).where(eq(kelurahan.idKecamatan, idKecamatan)).orderBy(asc(kelurahan.kelurahan));
       },
-      orderBy: {
-        kelurahan: "asc",
-      },
-    });
-  },
+      catch: error => new DatabaseError({ error }),
+    }),
+  ),
 };

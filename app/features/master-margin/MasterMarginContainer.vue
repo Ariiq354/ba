@@ -64,7 +64,7 @@ function handleDelete(ids: number[]) {
     <UCard class="border border-gray-200 dark:border-gray-800">
       <DataTable
         v-model:page="page"
-        :data="data?.items"
+        :data="data?.data"
         :columns="marginColumns"
         :loading="pending"
         :total="data?.total ?? 0"

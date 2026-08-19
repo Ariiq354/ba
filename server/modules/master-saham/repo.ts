@@ -1,72 +1,75 @@
-import type { DbClient } from "~~/server/database";
 import type { PaginationSchema } from "~~/server/utils/schema";
 import type { CreateSahamSchema } from "./model";
-import { count, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
+import { Effect } from "effect";
 import { db } from "~~/server/database";
 import { user } from "~~/server/database/schema/auth";
 import { saham } from "~~/server/database/schema/master";
+import { DatabaseError } from "~~/server/utils/error";
 
 export const MasterSahamRepo = {
-  async create(userId: number, data: CreateSahamSchema, client: DbClient = db) {
-    const rows = await client
-      .insert(saham)
-      .values({
-        hargaNominal: data.hargaNominal,
-        hargaJual: data.hargaJual,
-        updatedBy: userId,
-      })
-      .returning();
-    return rows[0];
-  },
+  create: Effect.fn("MasterSahamRepo.create")((userId: number, data: CreateSahamSchema) =>
+    Effect.tryPromise({
+      try: async () => {
+        const rows = await db
+          .insert(saham)
+          .values({
+            hargaNominal: data.hargaNominal,
+            hargaJual: data.hargaJual,
+            updatedBy: userId,
+          })
+          .returning();
+        return rows[0];
+      },
+      catch: error => new DatabaseError({ error }),
+    }),
+  ),
 
-  async getLatest(client: DbClient = db) {
-    const rows = await client
-      .select({
-        id: saham.id,
-        hargaNominal: saham.hargaNominal,
-        hargaJual: saham.hargaJual,
-        updatedBy: saham.updatedBy,
-        createdAt: saham.createdAt,
-        updatedByName: user.name,
-      })
-      .from(saham)
-      .leftJoin(user, eq(user.id, saham.updatedBy))
-      .orderBy(desc(saham.createdAt), desc(saham.id))
-      .limit(1);
-    return rows[0] ?? null;
-  },
+  getLatest: Effect.fn("MasterSahamRepo.getLatest")(() =>
+    Effect.tryPromise({
+      try: async () => {
+        const rows = await db
+          .select({
+            id: saham.id,
+            hargaNominal: saham.hargaNominal,
+            hargaJual: saham.hargaJual,
+            updatedBy: saham.updatedBy,
+            createdAt: saham.createdAt,
+            updatedByName: user.name,
+          })
+          .from(saham)
+          .leftJoin(user, eq(user.id, saham.updatedBy))
+          .orderBy(desc(saham.createdAt), desc(saham.id))
+          .limit(1);
+        return rows[0] ?? null;
+      },
+      catch: error => new DatabaseError({ error }),
+    }),
+  ),
 
-  async getPaginated(query: PaginationSchema, client: DbClient = db) {
-    const offset = (query.page - 1) * query.limit;
+  findAll: Effect.fn("MasterSahamRepo.findAll")((query: PaginationSchema) =>
+    Effect.tryPromise({
+      try: async () => {
+        const qb = db
+          .select({
+            id: saham.id,
+            hargaNominal: saham.hargaNominal,
+            hargaJual: saham.hargaJual,
+            updatedBy: saham.updatedBy,
+            createdAt: saham.createdAt,
+            updatedByName: user.name,
+          })
+          .from(saham)
+          .leftJoin(user, eq(user.id, saham.updatedBy))
+          .orderBy(desc(saham.createdAt), desc(saham.id));
 
-    const [items, totalRows] = await Promise.all([
-      client
-        .select({
-          id: saham.id,
-          hargaNominal: saham.hargaNominal,
-          hargaJual: saham.hargaJual,
-          updatedBy: saham.updatedBy,
-          createdAt: saham.createdAt,
-          updatedByName: user.name,
-        })
-        .from(saham)
-        .leftJoin(user, eq(user.id, saham.updatedBy))
-        .orderBy(desc(saham.createdAt), desc(saham.id))
-        .limit(query.limit)
-        .offset(offset),
-      client
-        .select({ total: count() })
-        .from(saham),
-    ]);
+        const offset = (query.page - 1) * query.limit;
+        const total = await db.$count(qb);
+        const data = await qb.limit(query.limit).offset(offset);
 
-    const total = totalRows[0]?.total ?? 0;
-
-    return {
-      items,
-      total,
-      page: query.page,
-      limit: query.limit,
-      totalPages: Math.ceil(total / query.limit),
-    };
-  },
+        return { total, data };
+      },
+      catch: error => new DatabaseError({ error }),
+    }),
+  ),
 };

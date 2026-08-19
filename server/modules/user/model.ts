@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { paginationSearchSchema } from "~~/server/utils/schema";
 
 export const createUserProfileSchema = z.object({
   image: z.string().optional(),
@@ -32,9 +33,7 @@ export const setGroupPjSchema = z.object({
 export type SetGroupPjSchema = z.infer<typeof setGroupPjSchema>;
 
 export const getUsersQuerySchema = z.object({
-  page: z.coerce.number().default(1),
-  limit: z.coerce.number().default(10),
-  search: z.string().optional(),
+  ...paginationSearchSchema.shape,
   status: z.enum(["all", "pending", "verified"]).default("all"),
 });
 

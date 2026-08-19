@@ -25,6 +25,6 @@ Feature modules (`app/features/*`) must strictly adhere to ADR 0001 (`docs/adr/0
 
 Server modules (`server/modules/*`) and API endpoints (`server/api/*`) must strictly adhere to ADR 0002 (`docs/adr/0002-server-module-architecture.md`):
 
-- **Repository**: Pure async DB queries via Drizzle ORM accepting optional `client: DbClient = db` (`typeof db | Tx`).
-- **Service & `catchError`**: Business logic, validations, and transactions (`db.transaction(async (tx) => { ... })`) live in services. Wrap async calls with `const [err, data] = await catchError(...)`. Throw standard 3-property `createError({ statusCode, statusMessage, message })` directly (`statusMessage` for short category, `message` for user-facing detail).
-- **Thin Controllers**: Event handlers in `server/api/v1/*` validate request data, enforce auth guards, and return service calls directly: `return await MyService.method(...)`.
+- **Repository**: Pure DB queries with `Effect.fn("Repo.method")((...) => Effect.tryPromise({ try: async () => ..., catch: (error) => ... }))`. Paging returns `{ total, data }`. Catch DB unique violations via `isUniqueViolation(error)` (`~~/server/utils/pgcode`) to return typed domain errors. Parameter `tx = db` is ONLY present on methods participating in transactions.
+- **Service & Effect Generators**: Business logic, validations, and orchestration live in services using `Effect.fn("Service.method")(function* (...) { ... })` and `yield*`. Throw typed errors (`new ItemNotFoundError({ id })`, domain `TaggedError`).
+- **Thin Controllers**: Event handlers in `server/api/v1/*` validate request data, enforce auth guards, and pipe service calls through `Effect.catchTags({...})` to standard 3-property `createError({ statusCode, statusMessage, message })`, terminating with `Effect.runPromise`.

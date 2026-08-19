@@ -136,7 +136,7 @@ function handleDeleteMutasi(id: number, kodeTransaksi: string) {
       <UCard class="border border-gray-200 dark:border-gray-800">
         <DataTable
           v-model:page="page"
-          :data="mutasiData?.items"
+          :data="mutasiData?.data"
           :columns="simpananMutasiColumns"
           :loading="loadingMutasi"
           :total="mutasiData?.total ?? 0"

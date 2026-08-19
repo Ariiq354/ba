@@ -10,12 +10,15 @@ export default defineEventHandler(async (event) => {
 
   return await MasterAkunService.getPaginatedAkun(query).pipe(
     Effect.catchTags({
-      DatabaseError: err =>
-        Effect.fail(createError({
+      DatabaseError: (err) => {
+        console.error("Database error:", err.error);
+
+        return Effect.fail(createError({
           statusCode: 500,
           statusMessage: "Database Error",
-          message: err.message || "Gagal mengambil data akun",
-        })),
+          message: "Gagal mengambil data akun",
+        }));
+      },
     }),
     Effect.runPromise,
   );

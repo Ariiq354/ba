@@ -1,57 +1,20 @@
-import { createError } from "h3";
-import { catchError } from "~~/server/utils/error";
+import { Effect } from "effect";
 import { WilayahRepo } from "./repo";
 
 export const WilayahService = {
-  async getProvinsi() {
-    const [err, data] = await catchError(WilayahRepo.getProvinsi());
-    if (err) {
-      console.error("Gagal mengambil data provinsi:", err);
-      throw createError({
-        statusCode: 500,
-        statusMessage: "Database Error",
-        message: "Gagal mengambil data provinsi",
-      });
-    }
-    return data;
-  },
+  getProvinsi: Effect.fn("WilayahService.getProvinsi")(function* () {
+    return yield* WilayahRepo.findProvinsi();
+  }),
 
-  async getKotaByProvinsiId(idProvinsi: string) {
-    const [err, data] = await catchError(WilayahRepo.getKotaByProvinsiId(idProvinsi));
-    if (err) {
-      console.error(`Gagal mengambil data kota untuk provinsi ${idProvinsi}:`, err);
-      throw createError({
-        statusCode: 500,
-        statusMessage: "Database Error",
-        message: "Gagal mengambil data kota",
-      });
-    }
-    return data;
-  },
+  getKotaByProvinsiId: Effect.fn("WilayahService.getKotaByProvinsiId")(function* (idProvinsi: string) {
+    return yield* WilayahRepo.findKotaByProvinsiId(idProvinsi);
+  }),
 
-  async getKecamatanByKotaId(idKota: string) {
-    const [err, data] = await catchError(WilayahRepo.getKecamatanByKotaId(idKota));
-    if (err) {
-      console.error(`Gagal mengambil data kecamatan untuk kota ${idKota}:`, err);
-      throw createError({
-        statusCode: 500,
-        statusMessage: "Database Error",
-        message: "Gagal mengambil data kecamatan",
-      });
-    }
-    return data;
-  },
+  getKecamatanByKotaId: Effect.fn("WilayahService.getKecamatanByKotaId")(function* (idKota: string) {
+    return yield* WilayahRepo.findKecamatanByKotaId(idKota);
+  }),
 
-  async getKelurahanByKecamatanId(idKecamatan: string) {
-    const [err, data] = await catchError(WilayahRepo.getKelurahanByKecamatanId(idKecamatan));
-    if (err) {
-      console.error(`Gagal mengambil data kelurahan untuk kecamatan ${idKecamatan}:`, err);
-      throw createError({
-        statusCode: 500,
-        statusMessage: "Database Error",
-        message: "Gagal mengambil data kelurahan",
-      });
-    }
-    return data;
-  },
+  getKelurahanByKecamatanId: Effect.fn("WilayahService.getKelurahanByKecamatanId")(function* (idKecamatan: string) {
+    return yield* WilayahRepo.findKelurahanByKecamatanId(idKecamatan);
+  }),
 };

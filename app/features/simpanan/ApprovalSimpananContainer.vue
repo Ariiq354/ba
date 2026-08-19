@@ -116,7 +116,7 @@ function handleReject(id: number, kodeTransaksi: string) {
     <UCard class="border border-gray-200 dark:border-gray-800">
       <DataTable
         v-model:page="page"
-        :data="mutasiData?.items"
+        :data="mutasiData?.data"
         :columns="approvalMutasiColumns"
         :loading="loadingMutasi || isApproving"
         :total="mutasiData?.total ?? 0"

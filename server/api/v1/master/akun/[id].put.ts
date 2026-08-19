@@ -12,11 +12,11 @@ export default defineEventHandler(async (event) => {
 
   return await MasterAkunService.updateAkun(id, body).pipe(
     Effect.catchTags({
-      AkunNotFoundError: () =>
+      ItemNotFoundError: () =>
         Effect.fail(createError({
           statusCode: 404,
           statusMessage: "Not Found",
-          message: "Data akun tidak ditemukan",
+          message: `Akun dengan id ${id} tidak ditemukan`,
         })),
       DuplicateKodeAkunError: err =>
         Effect.fail(createError({
@@ -24,12 +24,15 @@ export default defineEventHandler(async (event) => {
           statusMessage: "Conflict",
           message: `Kode akun '${err.kodeAkun}' sudah digunakan oleh akun lain`,
         })),
-      DatabaseError: err =>
-        Effect.fail(createError({
+      DatabaseError: (err) => {
+        console.error("Database error:", err.error);
+
+        return Effect.fail(createError({
           statusCode: 500,
           statusMessage: "Database Error",
-          message: err.message || "Gagal memperbarui data akun",
-        })),
+          message: "Gagal memperbarui data akun",
+        }));
+      },
     }),
     Effect.runPromise,
   );

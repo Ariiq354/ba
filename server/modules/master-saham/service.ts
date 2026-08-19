@@ -1,55 +1,23 @@
 import type { PaginationSchema } from "~~/server/utils/schema";
 import type { CreateSahamSchema } from "./model";
-import { createError } from "h3";
-import { catchError } from "~~/server/utils/error";
+import { Effect } from "effect";
+import { HargaSahamNotFoundError } from "./errors";
 import { MasterSahamRepo } from "./repo";
 
 export const MasterSahamService = {
-  async createSaham(userId: number, data: CreateSahamSchema) {
-    const [err, created] = await catchError(MasterSahamRepo.create(userId, data));
-    if (err) {
-      console.error("Gagal membuat data master saham:", err);
-      throw createError({
-        statusCode: 500,
-        statusMessage: "Database Error",
-        message: "Gagal membuat data master saham",
-      });
-    }
-    return created;
-  },
+  createSaham: Effect.fn("MasterSahamService.createSaham")(function* (userId: number, data: CreateSahamSchema) {
+    return yield* MasterSahamRepo.create(userId, data);
+  }),
 
-  async getLatestSaham() {
-    const [err, data] = await catchError(MasterSahamRepo.getLatest());
-    if (err) {
-      console.error("Gagal mengambil data saham terbaru:", err);
-      throw createError({
-        statusCode: 500,
-        statusMessage: "Database Error",
-        message: "Gagal mengambil data master saham",
-      });
-    }
-
+  getLatestSaham: Effect.fn("MasterSahamService.getLatestSaham")(function* () {
+    const data = yield* MasterSahamRepo.getLatest();
     if (!data) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: "Not Found",
-        message: "Data master harga saham belum tersedia",
-      });
+      return yield* new HargaSahamNotFoundError();
     }
-
     return data;
-  },
+  }),
 
-  async getPaginatedSaham(query: PaginationSchema) {
-    const [err, result] = await catchError(MasterSahamRepo.getPaginated(query));
-    if (err) {
-      console.error("Gagal mengambil data paginasi saham:", err);
-      throw createError({
-        statusCode: 500,
-        statusMessage: "Database Error",
-        message: "Gagal mengambil data master saham",
-      });
-    }
-    return result;
-  },
+  getPaginatedSaham: Effect.fn("MasterSahamService.getPaginatedSaham")(function* (query: PaginationSchema) {
+    return yield* MasterSahamRepo.findAll(query);
+  }),
 };

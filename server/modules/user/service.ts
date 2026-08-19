@@ -1,179 +1,139 @@
 import type { UserWithId } from "~~/server/utils/auth";
 import type { CreateUserProfileSchema, GetUsersQuerySchema } from "./model";
-import { createError } from "h3";
+import { Effect } from "effect";
 import { db } from "~~/server/database";
-import { catchError } from "~~/server/utils/error";
+import { DatabaseError, ItemNotFoundError } from "~~/server/utils/error";
 import { deleteFile } from "~~/server/utils/files";
 import { generateNoAnggota } from "~~/server/utils/member";
+import {
+  AdminCannotBePjError,
+  ProfileImageRequiredError,
+  UserAlreadyVerifiedError,
+  UserUnverifiedError,
+} from "./errors";
 import { UserRepo } from "./repo";
 
 export const UserService = {
-  async updateProfile(userObject: UserWithId, data: CreateUserProfileSchema) {
+  updateProfile: Effect.fn("UserService.updateProfile")(function* (
+    userObject: UserWithId,
+    data: CreateUserProfileSchema,
+  ) {
     const oldImage = userObject.image;
     const newImage = data.imageAction === "update" ? data.image : undefined;
 
     if (data.imageAction === "update" && !newImage) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: "Validation Error",
-        message: "Foto profil baru wajib diisi untuk tindakan update",
-      });
+      return yield* new ProfileImageRequiredError();
     }
 
-    const [txErr] = await catchError(
-      db.transaction(async (tx) => {
-        await UserRepo.updateUserProfile(userObject.id, oldImage, data, tx);
-      }),
-    );
-
-    if (txErr) {
-      console.error("Gagal memperbarui profil user di DB:", txErr);
-      throw createError({
-        statusCode: 500,
-        statusMessage: "Database Error",
-        message: "Gagal memperbarui data profil pengguna",
-      });
-    }
+    yield* Effect.tryPromise({
+      try: async () => {
+        await db.transaction(async (tx) => {
+          await Effect.runPromise(UserRepo.updateUserProfile(userObject.id, oldImage, data, tx));
+        });
+      },
+      catch: error => new DatabaseError({ error }),
+    });
 
     const shouldDeleteOldFile
       = (data.imageAction === "remove" && oldImage)
         || (data.imageAction === "update" && oldImage && oldImage !== newImage);
 
     if (shouldDeleteOldFile && oldImage) {
-      const [s3Err] = await catchError(deleteFile(oldImage));
-      if (s3Err) {
-        console.error(`Gagal menghapus file lama dari S3 (${oldImage}):`, s3Err);
-      }
-    }
-
-    return { success: true };
-  },
-
-  async getProfile(userId: number) {
-    const [err, profile] = await catchError(UserRepo.getUserProfile(userId));
-    if (err) {
-      console.error(`Gagal mengambil profil user ${userId}:`, err);
-      throw createError({
-        statusCode: 500,
-        statusMessage: "Database Error",
-        message: "Gagal mengambil data profil pengguna",
+      yield* Effect.tryPromise({
+        try: async () => {
+          try {
+            await deleteFile(oldImage);
+          }
+          catch (s3Err) {
+            console.error(`Gagal menghapus file lama dari S3 (${oldImage}):`, s3Err);
+          }
+        },
+        catch: () => undefined,
       });
     }
 
+    return { success: true };
+  }),
+
+  getProfile: Effect.fn("UserService.getProfile")(function* (userId: number) {
+    const profile = yield* UserRepo.getProfile(userId);
     if (!profile) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: "Not Found",
-        message: "Data profil pengguna tidak ditemukan",
-      });
+      return yield* new ItemNotFoundError({ id: userId });
     }
-
     return profile;
-  },
+  }),
 
-  async verifyUser(userId: number) {
-    const [err, result] = await catchError(
-      db.transaction(async (tx) => {
-        const targetUser = await UserRepo.getUserById(userId, tx);
-        if (!targetUser) {
-          throw createError({
-            statusCode: 404,
-            statusMessage: "Not Found",
-            message: "Pengguna tidak ditemukan",
-          });
+  verifyUser: Effect.fn("UserService.verifyUser")(function* (userId: number) {
+    return yield* Effect.tryPromise({
+      try: async () => {
+        return await db.transaction(async (tx) => {
+          const targetUser = await Effect.runPromise(UserRepo.findById(userId, tx));
+          if (!targetUser) {
+            throw new ItemNotFoundError({ id: userId });
+          }
+
+          if (!targetUser.banned) {
+            throw new UserAlreadyVerifiedError({ userId });
+          }
+
+          const noAnggota = await generateNoAnggota(tx, targetUser.idKelompok);
+          await Effect.runPromise(UserRepo.unbanUserAndSetNoAnggota(userId, noAnggota, tx));
+          return { noAnggota };
+        });
+      },
+      catch: (error) => {
+        if (
+          error instanceof ItemNotFoundError
+          || error instanceof UserAlreadyVerifiedError
+        ) {
+          return error;
         }
+        return new DatabaseError({ error });
+      },
+    });
+  }),
 
-        if (!targetUser.banned) {
-          throw createError({
-            statusCode: 400,
-            statusMessage: "Validation Error",
-            message: "Akun pengguna sudah terverifikasi sebelumnya",
-          });
+  setUserPj: Effect.fn("UserService.setUserPj")(function* (userId: number, isPj: boolean) {
+    yield* Effect.tryPromise({
+      try: async () => {
+        await db.transaction(async (tx) => {
+          const targetUser = await Effect.runPromise(UserRepo.findById(userId, tx));
+          if (!targetUser) {
+            throw new ItemNotFoundError({ id: userId });
+          }
+
+          if (targetUser.role === "admin") {
+            throw new AdminCannotBePjError({ userId });
+          }
+
+          if (targetUser.banned) {
+            throw new UserUnverifiedError({ userId });
+          }
+
+          if (isPj) {
+            await Effect.runPromise(UserRepo.assignPj(targetUser.idKelompok, userId, tx));
+          }
+          else {
+            await Effect.runPromise(UserRepo.revokePj(targetUser.idKelompok, userId, tx));
+          }
+        });
+      },
+      catch: (error) => {
+        if (
+          error instanceof ItemNotFoundError
+          || error instanceof AdminCannotBePjError
+          || error instanceof UserUnverifiedError
+        ) {
+          return error;
         }
-
-        const noAnggota = await generateNoAnggota(tx, targetUser.idKelompok);
-        await UserRepo.unbanUserAndSetNoAnggota(userId, noAnggota, tx);
-        return { noAnggota };
-      }),
-    );
-
-    if (err) {
-      if ("statusCode" in (err as any)) {
-        throw err;
-      }
-      console.error(`Gagal memverifikasi user ${userId}:`, err);
-      throw createError({
-        statusCode: 500,
-        statusMessage: "Database Error",
-        message: "Gagal memverifikasi akun pengguna",
-      });
-    }
-
-    return result;
-  },
-
-  async setUserPj(userId: number, isPj: boolean) {
-    const [err] = await catchError(
-      db.transaction(async (tx) => {
-        const targetUser = await UserRepo.getUserById(userId, tx);
-        if (!targetUser) {
-          throw createError({
-            statusCode: 404,
-            statusMessage: "Not Found",
-            message: "Pengguna tidak ditemukan",
-          });
-        }
-
-        if (targetUser.role === "admin") {
-          throw createError({
-            statusCode: 400,
-            statusMessage: "Validation Error",
-            message: "Pengguna dengan role Admin tidak dapat dijadikan PJ kelompok",
-          });
-        }
-
-        if (targetUser.banned) {
-          throw createError({
-            statusCode: 400,
-            statusMessage: "Validation Error",
-            message: "Pengguna belum terverifikasi, tidak dapat dijadikan PJ kelompok",
-          });
-        }
-
-        if (isPj) {
-          await UserRepo.assignPj(targetUser.idKelompok, userId, tx);
-        }
-        else {
-          await UserRepo.revokePj(targetUser.idKelompok, userId, tx);
-        }
-      }),
-    );
-
-    if (err) {
-      if ("statusCode" in (err as any)) {
-        throw err;
-      }
-      console.error(`Gagal mengubah status PJ user ${userId}:`, err);
-      throw createError({
-        statusCode: 500,
-        statusMessage: "Database Error",
-        message: "Gagal mengubah penanggung jawab kelompok",
-      });
-    }
+        return new DatabaseError({ error });
+      },
+    });
 
     return { success: true };
-  },
+  }),
 
-  async getUsers(query: GetUsersQuerySchema) {
-    const [err, result] = await catchError(UserRepo.getPaginatedUsers(query));
-    if (err) {
-      console.error("Gagal mengambil data paginasi user:", err);
-      throw createError({
-        statusCode: 500,
-        statusMessage: "Database Error",
-        message: "Gagal mengambil daftar pengguna",
-      });
-    }
-    return result;
-  },
+  getUsers: Effect.fn("UserService.getUsers")(function* (query: GetUsersQuerySchema) {
+    return yield* UserRepo.findAll(query);
+  }),
 };

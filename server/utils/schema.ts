@@ -174,7 +174,7 @@ export const paginationSearchSchema = z.object({
 export type PaginationSearchSchema = z.infer<typeof paginationSearchSchema>;
 
 export const deleteSchema = z.object({
-  ids: z.array(z.number()).default([]),
+  ids: z.array(z.number()).min(1),
 });
 
 export type DeleteSchema = z.infer<typeof deleteSchema>;

@@ -1,44 +1,58 @@
-import type { DbClient } from "~~/server/database";
 import { eq, inArray } from "drizzle-orm";
+import { Effect } from "effect";
 import { db } from "~~/server/database";
 import { files } from "~~/server/database/schema/files";
+import { DatabaseError } from "~~/server/utils/error";
 
 export const FilesRepo = {
-  async createPendingFile(
-    data: { publicId: string; filename: string; mimeType: string; size: number },
-    client: DbClient = db,
-  ) {
-    return await client
-      .insert(files)
-      .values({
-        publicId: data.publicId,
-        filename: data.filename,
-        mimeType: data.mimeType,
-        size: data.size,
-        status: "pending",
-      });
-  },
+  createPendingFile: Effect.fn("FilesRepo.createPendingFile")(
+    (data: { publicId: string; filename: string; mimeType: string; size: number }) =>
+      Effect.tryPromise({
+        try: async () => {
+          await db.insert(files).values({
+            publicId: data.publicId,
+            filename: data.filename,
+            mimeType: data.mimeType,
+            size: data.size,
+            status: "pending",
+          });
+        },
+        catch: error => new DatabaseError({ error }),
+      }),
+  ),
 
-  async promoteFile(publicId: string, client: DbClient = db) {
-    return await client
-      .update(files)
-      .set({ status: "success" })
-      .where(eq(files.publicId, publicId));
-  },
+  promoteFile: Effect.fn("FilesRepo.promoteFile")((publicId: string) =>
+    Effect.tryPromise({
+      try: async () => {
+        await db
+          .update(files)
+          .set({ status: "success" })
+          .where(eq(files.publicId, publicId));
+      },
+      catch: error => new DatabaseError({ error }),
+    }),
+  ),
 
-  async getPendingFiles(client: DbClient = db) {
-    return await client
-      .select()
-      .from(files)
-      .where(eq(files.status, "pending"));
-  },
+  getPendingFiles: Effect.fn("FilesRepo.getPendingFiles")(() =>
+    Effect.tryPromise({
+      try: async () => {
+        return await db
+          .select()
+          .from(files)
+          .where(eq(files.status, "pending"));
+      },
+      catch: error => new DatabaseError({ error }),
+    }),
+  ),
 
-  async deleteFilesByPublicIds(publicIds: string[], client: DbClient = db) {
-    if (publicIds.length === 0) {
-      return;
-    }
-    return await client
-      .delete(files)
-      .where(inArray(files.publicId, publicIds));
-  },
+  deleteFilesByPublicIds: Effect.fn("FilesRepo.deleteFilesByPublicIds")((publicIds: string[]) =>
+    Effect.tryPromise({
+      try: async () => {
+        if (publicIds.length === 0)
+          return;
+        await db.delete(files).where(inArray(files.publicId, publicIds));
+      },
+      catch: error => new DatabaseError({ error }),
+    }),
+  ),
 };

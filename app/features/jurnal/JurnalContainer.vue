@@ -74,11 +74,10 @@ function handleDelete(headerId: number, kodeTransaksi: string) {
     <UCard class="border border-gray-200 dark:border-gray-800">
       <JurnalTable
         v-model:page="page"
-        :data="data?.items"
+        :data="data?.data"
         :loading="pending"
         :total="data?.total"
-        :total-headers="data?.totalHeaders"
-        :limit="data?.limit"
+        :total-headers="data?.total"
         @delete="handleDelete"
       />
     </UCard>

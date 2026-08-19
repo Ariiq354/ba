@@ -1,9 +1,8 @@
 import { z } from "zod";
+import { paginationSearchSchema } from "~~/server/utils/schema";
 
 export const getJurnalQuerySchema = z.object({
-  page: z.coerce.number().default(1),
-  limit: z.coerce.number().default(10),
-  search: z.string().optional(),
+  ...paginationSearchSchema.shape,
 });
 
 export type GetJurnalQuerySchema = z.infer<typeof getJurnalQuerySchema>;

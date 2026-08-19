@@ -1,118 +1,188 @@
-# ADR 0002: Server Module & API Architecture Conventions
+# ADR 0002: Server Module & API Architecture Conventions (Effect-TS)
 
-- **Status**: Accepted (Updated 2026-08-16: Standardized 3-property `createError` format: `statusCode`, `statusMessage`, and user-facing `message`)
-- **Date**: 2026-08-13 (Revised 2026-08-16)
+- **Status**: Accepted (Updated 2026-08-19: Standardized on Effect-TS architecture)
+- **Date**: 2026-08-13 (Revised 2026-08-19)
 
 ## Context
 
-Previous server architecture relied on `neverthrow` (`ResultAsync`, `.match()`), which introduced excessive verbosity and boilerplate in service methods and API endpoint handlers. Furthermore, error formats required standardisation across HTTP status codes, error categories, and human-readable user messages.
+Previous server architecture relied on plain Promises with `catchError` tuple handlers (`[err, data]`) and direct `createError` throws inside services. While simple, it lacked compile-time typed error tracking across layer boundaries. To achieve type-safe domain errors, clean composability, explicit error recovery, and robust Postgres constraint handling, backend modules are standardized on **Effect-TS**.
 
 ## Decisions
 
-To enforce clean separation of concerns, explicit error reporting, and lightweight API controllers across all server code (`server/modules/*` and `server/api/*`), developers and agents MUST adhere to these conventions:
+All server code under `server/modules/*` and `server/api/*` MUST adhere to the following architecture and style conventions:
 
-### 1. Module Layering (Repo, Service, API)
+### 1. Naming Conventions
 
-- **Repository (`server/modules/<module>/repo.ts`)**:
-  - Pure database calls via Drizzle ORM returning Promises.
-  - No HTTP or business logic exceptions thrown in Repo (only DB interactions).
-  - All Repo functions accept an optional `client: DbClient = db` parameter (where `DbClient = typeof db | Tx`) so transactions can be orchestrated cleanly from the Service layer.
+| Component                | Naming Pattern                                    | Example                                                                           |
+| :----------------------- | :------------------------------------------------ | :-------------------------------------------------------------------------------- |
+| **Object Module**        | `PascalCase` + `Repo` / `Service`                 | `MasterAkunRepo`, `MasterAkunService`                                             |
+| **Repo Method**          | `camelCase` (CRUD / specific query verb)          | `create`, `findAll`, `findById`, `update`, `deleteBulk`                           |
+| **Service Method**       | `camelCase` (Action verb + Entity)                | `createAkun`, `getPaginatedAkun`, `updateAkun`, `deleteAkun`                      |
+| **Effect.fn Identifier** | `"<ObjectName>.<methodName>"`                     | `Effect.fn("MasterAkunRepo.create")`, `Effect.fn("MasterAkunService.createAkun")` |
+| **Zod Schema Variable**  | `camelCase` + Suffix (`Schema` / `Enum`)          | `createAkunSchema`, `getAkunQuerySchema`, `kategoriAkunEnum`                      |
+| **Inferred Type**        | `PascalCase` (Identical to schema name)           | `CreateAkunSchema`, `GetAkunQuerySchema`                                          |
+| **Tagged Error Class**   | `PascalCase` + `Error` (Tag string matches class) | `DuplicateKodeAkunError`, `DatabaseError`, `ItemNotFoundError`                    |
 
-- **Service (`server/modules/<module>/service.ts`)**:
-  - Encapsulates all business logic, validation, and multi-step transaction orchestration (`db.transaction(async (tx) => { ... })`).
-  - Wraps async calls with `const [err, data] = await catchError(promise)` (`server/utils/error.ts`).
-  - Directly throws `createError({ statusCode, statusMessage, message })` on domain validations or database failures with explicit context.
+### 2. Module Layering
 
-- **API Endpoints (`server/api/v1/*`)**:
-  - Thin controllers that extract & validate inputs (`readValidatedBodySafe`, `getValidatedQuerySafe`), enforce authentication (`authGuard`, `adminGuard`), and return service calls directly: `return await MyService.method(...)`.
-  - Nuxt / H3 automatically handles errors thrown by `createError()` from services.
+#### A. Schema & Model (`server/modules/<module>/model.ts`)
 
-### 2. Standard 3-Property `createError` Format
+- Reuse common query schemas: spread `paginationSearchSchema.shape` from `~~/server/utils/schema`.
+- Derive update schemas using `.partial()` from creation schemas (e.g. `createAkunSchema.partial()`).
+- Always export inferred types matching schema names: `export type CreateAkunSchema = z.infer<typeof createAkunSchema>;`.
 
-Every `createError` MUST include:
+#### B. Error Definitions (`errors.ts` & `server/utils/error.ts`)
 
-1. `statusCode`: HTTP status code (400, 401, 403, 404, 409, 500).
-2. `statusMessage`: Concise error category (`"Validation Error"`, `"Not Found"`, `"Conflict"`, `"Forbidden"`, `"Unauthorized"`, `"Database Error"`, `"Storage Error"`, `"Internal Server Error"`).
-3. `message`: Descriptive, user-facing error message in Indonesian.
+- Define errors using `Data.TaggedError("<ErrorName>")<{ readonly prop: Type }>` from `effect`.
+- **Generic Errors** (`DatabaseError`, `ItemNotFoundError`, `ItemsNotFoundError`) belong in `~~/server/utils/error.ts`.
+- **Domain Errors** with specific business payloads (e.g. `DuplicateKodeAkunError`) belong in `server/modules/<module>/errors.ts`.
+
+#### C. Repository Layer (`server/modules/<module>/repo.ts`)
+
+- Implement functions with `Effect.fn("Repo.method")((args) => Effect.tryPromise({ try: async () => ..., catch: (error) => ... }))`.
+- Rely on database constraints instead of redundant pre-check SELECT queries. Use `isUniqueViolation(error)` (`~~/server/utils/pgcode`) to map unique violations (PG `23505`) to typed domain errors.
+- Paginated queries must return `{ total, data }` using `db.$count(qb)` and `qb.limit(limit).offset(offset)`.
+- Use `.returning()` on `update` and `delete` operations.
+- Parameter `tx` (`tx = db`) is **ONLY** added to repo methods that actually participate in multi-step transactions. Standard query methods MUST NOT include `tx`.
 
 ```ts
-import { createError } from "h3";
-import { catchError } from "~~/server/utils/error";
-import { MyRepo } from "./repo";
+import type { CreateAkunSchema, GetAkunQuerySchema, UpdateAkunSchema } from "./model";
+import { and, asc, eq, ilike, inArray, or } from "drizzle-orm";
+import { Effect } from "effect";
+import { db } from "~~/server/database";
+import { akun } from "~~/server/database/schema/akun";
+import { DatabaseError } from "~~/server/utils/error";
+import { isUniqueViolation } from "~~/server/utils/pgcode";
+import { DuplicateKodeAkunError } from "./errors";
 
-export const MyService = {
-  async getById(id: number) {
-    const [err, item] = await catchError(MyRepo.findById(id));
-    if (err) {
-      console.error(`Gagal mencari data ID ${id}:`, err);
-      throw createError({
-        statusCode: 500,
-        statusMessage: "Database Error",
-        message: "Gagal mengambil data",
-      });
-    }
+export const MasterAkunRepo = {
+  create: Effect.fn("MasterAkunRepo.create")((data: CreateAkunSchema) =>
+    Effect.tryPromise({
+      try: async () => {
+        await db.insert(akun).values(data);
+      },
+      catch: (error) => {
+        if (isUniqueViolation(error)) {
+          return new DuplicateKodeAkunError({ kodeAkun: data.kodeAkun });
+        }
+        return new DatabaseError({ error });
+      },
+    }),
+  ),
 
-    if (!item) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: "Not Found",
-        message: "Data tidak ditemukan",
-      });
-    }
+  findAll: Effect.fn("MasterAkunRepo.findAll")((query: GetAkunQuerySchema) =>
+    Effect.tryPromise({
+      try: async () => {
+        const conditions = [];
+        if (query.search) {
+          conditions.push(ilike(akun.namaAkun, `%${query.search}%`));
+        }
 
-    return item;
-  },
+        const qb = db
+          .select()
+          .from(akun)
+          .where(and(...conditions))
+          .orderBy(asc(akun.kodeAkun));
+
+        const offset = (query.page - 1) * query.limit;
+        const total = await db.$count(qb);
+        const data = await qb.limit(query.limit).offset(offset);
+
+        return { total, data };
+      },
+      catch: error => new DatabaseError({ error }),
+    }),
+  ),
 };
 ```
 
-### 3. Transaction Orchestration in Service Layer
+#### D. Service Layer (`server/modules/<module>/service.ts`)
+
+- Implement methods with generator syntax: `Effect.fn("Service.method")(function* (args) { ... })`.
+- Use `yield*` to invoke repo methods and raise typed errors (e.g. `if (rows.length === 0) return yield* new ItemNotFoundError({ id });`).
+- For transactions, execute `db.transaction(async (tx) => { ... })` and pass `tx` to participating repo functions.
 
 ```ts
-const [txErr, result] = await catchError(
-  db.transaction(async (tx) => {
-    // Pass `tx` as client to repo methods
-    const item = await MyRepo.findById(id, tx);
-    if (!item) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: "Not Found",
-        message: "Data tidak ditemukan",
-      });
-    }
-    return await MyRepo.update(id, data, tx);
-  }),
-);
+import type { CreateAkunSchema, GetAkunQuerySchema, UpdateAkunSchema } from "./model";
+import { Effect } from "effect";
+import { ItemNotFoundError, ItemsNotFoundError } from "~~/server/utils/error";
+import { MasterAkunRepo } from "./repo";
 
-if (txErr) {
-  if ("statusCode" in (txErr as any)) {
-    throw txErr;
-  }
-  console.error("Gagal menjalankan transaksi:", txErr);
-  throw createError({
-    statusCode: 500,
-    statusMessage: "Database Error",
-    message: "Gagal memproses transaksi",
-  });
-}
+export const MasterAkunService = {
+  createAkun: Effect.fn("MasterAkunService.createAkun")(function* (data: CreateAkunSchema) {
+    return yield* MasterAkunRepo.create(data);
+  }),
+
+  getPaginatedAkun: Effect.fn("MasterAkunService.getPaginatedAkun")(function* (query: GetAkunQuerySchema) {
+    return yield* MasterAkunRepo.findAll(query);
+  }),
+
+  updateAkun: Effect.fn("MasterAkunService.updateAkun")(function* (id: number, data: UpdateAkunSchema) {
+    const returning = yield* MasterAkunRepo.update(id, data);
+    if (returning.length === 0) {
+      return yield* new ItemNotFoundError({ id });
+    }
+  }),
+};
 ```
 
-### 4. Client Error Consumption
+#### E. API Endpoints (`server/api/v1/*`)
 
-Frontend components import `extractErrorMessage` from `~/composables/toast` (which safely inspects `error instanceof FetchError && error.data?.message`):
+- Extract and validate parameters using safe validators (`readValidatedBodySafe`, `getValidatedQuerySafe`, `getValidatedRouterParamsSafe`).
+- Check authorization guards at the very beginning (`authGuard(event)`, `adminGuard(event)`).
+- Pipe service execution through `Effect.catchTags` to standard 3-property `createError({ statusCode, statusMessage, message })`, terminating with `Effect.runPromise`.
 
 ```ts
-try {
-  await $fetch("/api/v1/...", { method: "POST", body });
-  useToastSuccess("Berhasil", "Data berhasil disimpan");
-}
-catch (error: unknown) {
-  useToastError("Gagal", extractErrorMessage(error, "Terjadi kesalahan saat menyimpan data."));
+import { Effect } from "effect";
+import { createAkunSchema } from "~~/server/modules/master-akun/model";
+import { MasterAkunService } from "~~/server/modules/master-akun/service";
+import { adminGuard } from "~~/server/utils/guard";
+import { readValidatedBodySafe } from "~~/server/utils/validator";
+
+export default defineEventHandler(async (event) => {
+  adminGuard(event);
+  const body = await readValidatedBodySafe(event, createAkunSchema);
+
+  return await MasterAkunService.createAkun(body).pipe(
+    Effect.catchTags({
+      DuplicateKodeAkunError: err =>
+        Effect.fail(
+          createError({
+            statusCode: 400,
+            statusMessage: "Conflict",
+            message: `Kode akun '${err.kodeAkun}' sudah digunakan`,
+          }),
+        ),
+      DatabaseError: (err) => {
+        console.error("Database error:", err.error);
+        return Effect.fail(
+          createError({
+            statusCode: 500,
+            statusMessage: "Database Error",
+            message: "Gagal membuat data akun",
+          }),
+        );
+      },
+    }),
+    Effect.runPromise,
+  );
+});
+```
+
+### 3. Response Structure Standard
+
+All list/pagination endpoints return:
+
+```ts
+export interface PaginatedResult<T> {
+  total: number;
+  data: T[];
 }
 ```
 
 ## Consequences
 
-- Direct, clean, and concise API handlers without verbose `.match()` blocks.
-- Full type inference for Nuxt auto-generated client types.
-- Clear error handling with descriptive console logging and proper HTTP status codes.
-- Zero external monadic library overhead (removed `neverthrow`).
+- Full compile-time type safety across error channels.
+- Predictable and uniform exception handling in API controllers.
+- Elimination of redundant preliminary DB lookups by leveraging Postgres constraints.
+- Consistent `{ total, data }` response contracts between backend and frontend.

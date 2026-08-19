@@ -23,7 +23,7 @@ const { data: akunData, pending: loadingAkun } = await useLazyFetch("/api/v1/mas
 });
 
 const akunOptions = computed(() => {
-  const items = akunData.value?.items || [];
+  const items = akunData.value?.data || [];
   return items
     .filter((a: any) => a.isActive)
     .map((a: any) => ({
