@@ -25,14 +25,7 @@ export const UserService = {
       return yield* new ProfileImageRequiredError();
     }
 
-    yield* Effect.tryPromise({
-      try: async () => {
-        await db.transaction(async (tx) => {
-          await Effect.runPromise(UserRepo.updateUserProfile(userObject.id, oldImage, data, tx));
-        });
-      },
-      catch: error => new DatabaseError({ error }),
-    });
+    yield* UserRepo.updateUserProfile(userObject.id, oldImage, data);
 
     const shouldDeleteOldFile
       = (data.imageAction === "remove" && oldImage)
@@ -64,71 +57,49 @@ export const UserService = {
   }),
 
   verifyUser: Effect.fn("UserService.verifyUser")(function* (userId: number) {
-    return yield* Effect.tryPromise({
+    const targetUser = yield* UserRepo.findById(userId);
+    if (!targetUser) {
+      return yield* new ItemNotFoundError({ id: userId });
+    }
+
+    if (!targetUser.banned) {
+      return yield* new UserAlreadyVerifiedError({ userId });
+    }
+
+    const noAnggota = yield* Effect.tryPromise({
       try: async () => {
         return await db.transaction(async (tx) => {
-          const targetUser = await Effect.runPromise(UserRepo.findById(userId, tx));
-          if (!targetUser) {
-            throw new ItemNotFoundError({ id: userId });
-          }
-
-          if (!targetUser.banned) {
-            throw new UserAlreadyVerifiedError({ userId });
-          }
-
-          const noAnggota = await generateNoAnggota(tx, targetUser.idKelompok);
-          await Effect.runPromise(UserRepo.unbanUserAndSetNoAnggota(userId, noAnggota, tx));
-          return { noAnggota };
+          const generatedNo = await generateNoAnggota(tx, targetUser.idKelompok);
+          await Effect.runPromise(UserRepo.unbanUserAndSetNoAnggota(userId, generatedNo, tx));
+          return generatedNo;
         });
       },
-      catch: (error) => {
-        if (
-          error instanceof ItemNotFoundError
-          || error instanceof UserAlreadyVerifiedError
-        ) {
-          return error;
-        }
-        return new DatabaseError({ error });
-      },
+      catch: error => new DatabaseError({ error }),
     });
+
+    return { noAnggota };
   }),
 
   setUserPj: Effect.fn("UserService.setUserPj")(function* (userId: number, isPj: boolean) {
-    yield* Effect.tryPromise({
-      try: async () => {
-        await db.transaction(async (tx) => {
-          const targetUser = await Effect.runPromise(UserRepo.findById(userId, tx));
-          if (!targetUser) {
-            throw new ItemNotFoundError({ id: userId });
-          }
+    const targetUser = yield* UserRepo.findById(userId);
+    if (!targetUser) {
+      return yield* new ItemNotFoundError({ id: userId });
+    }
 
-          if (targetUser.role === "admin") {
-            throw new AdminCannotBePjError({ userId });
-          }
+    if (targetUser.role === "admin") {
+      return yield* new AdminCannotBePjError({ userId });
+    }
 
-          if (targetUser.banned) {
-            throw new UserUnverifiedError({ userId });
-          }
+    if (targetUser.banned) {
+      return yield* new UserUnverifiedError({ userId });
+    }
 
-          if (isPj) {
-            await Effect.runPromise(UserRepo.assignPj(targetUser.idKelompok, userId, tx));
-          }
-          else {
-            await Effect.runPromise(UserRepo.revokePj(targetUser.idKelompok, userId, tx));
-          }
-        });
-      },
-      catch: (error) => {
-        if (
-          error instanceof ItemNotFoundError
-          || error instanceof AdminCannotBePjError
-          || error instanceof UserUnverifiedError
-        ) {
-          return error;
-        }
-        return new DatabaseError({ error });
-      },
-    });
+    if (isPj) {
+      yield* UserRepo.assignPj(targetUser.idKelompok, userId);
+    }
+    else {
+      yield* UserRepo.revokePj(targetUser.idKelompok, userId);
+    }
 
     return { success: true };
   }),

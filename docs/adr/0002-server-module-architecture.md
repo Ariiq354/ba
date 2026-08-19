@@ -45,7 +45,10 @@ All server code under `server/modules/*` and `server/api/*` MUST adhere to the f
 - **Create Operations**: Standard `create` operations return `void` (no `.returning()` or entity return value), unless explicitly required for chained foreign-key orchestration in multi-step transactions (e.g., retrieving a generated header ID to insert detail rows).
 - **Update & Delete Operations**: Use `.returning()` so the service layer can inspect `rows.length === 0` to yield `ItemNotFoundError` or `ItemsNotFoundError`.
 - Paginated queries must return `{ total, data }` using `db.$count(qb)` and `qb.limit(limit).offset(offset)`.
-- Parameter `tx` (`tx = db`) is **ONLY** added to repo methods that actually participate in multi-step transactions. Standard query methods MUST NOT include `tx`.
+- **Transaction Placement & `tx` Parameter**:
+  - **Single-Repo Transaction (Encapsulated in Repo)**: If an operation is contained within a single repository method (even if mutating multiple tables), the transaction `await db.transaction(async (tx) => { ... })` MUST be encapsulated inside the repository method. The method MUST NOT accept a `tx` parameter, allowing the Service Layer to simply call `yield* Repo.method(...)`.
+  - **Multi-Step Transaction (Managed in Service)**: Only when the Service Layer orchestrates multiple repository methods or database utilities (e.g., sequence generation + unban/insert) that must be atomic together, the transaction `db.transaction(async (tx) => ...)` is managed in the Service Layer. In this case, only the participating repository methods accept `tx: DbTransaction | typeof db = db`.
+  - Standard query methods (`findById`, `findAll`) MUST NOT include `tx`.
 
 ```ts
 import type { CreateAkunSchema, GetAkunQuerySchema, UpdateAkunSchema } from "./model";
@@ -102,7 +105,7 @@ export const MasterAkunRepo = {
 
 - Implement methods with generator syntax: `Effect.fn("Service.method")(function* (args) { ... })`.
 - Use `yield*` to invoke repo methods and raise typed errors (e.g. `if (rows.length === 0) return yield* new ItemNotFoundError({ id });`).
-- For transactions, execute `db.transaction(async (tx) => { ... })` and pass `tx` to participating repo functions.
+- For multi-step transactions coordinating multiple repo methods or DB utilities, execute `db.transaction(async (tx) => { ... })` and pass `tx` to participating repo functions. For single-method transactions, invoke the repo method directly via `yield*`.
 
 ```ts
 import type { CreateAkunSchema, GetAkunQuerySchema, UpdateAkunSchema } from "./model";

@@ -1,3 +1,4 @@
+import type { DbTransaction } from "~~/server/utils/member";
 import type { CreateUserProfileSchema, GetUsersQuerySchema } from "./model";
 import { and, desc, eq, ilike, isNull, or } from "drizzle-orm";
 import { Effect } from "effect";
@@ -9,10 +10,10 @@ import { userProfile } from "~~/server/database/schema/users";
 import { DatabaseError } from "~~/server/utils/error";
 
 export const UserRepo = {
-  findById: Effect.fn("UserRepo.findById")((userId: number, tx = db) =>
+  findById: Effect.fn("UserRepo.findById")((userId: number) =>
     Effect.tryPromise({
       try: async () => {
-        return await (tx as typeof db).query.user.findFirst({
+        return await db.query.user.findFirst({
           columns: {
             id: true,
             role: true,
@@ -77,71 +78,73 @@ export const UserRepo = {
   ),
 
   updateUserProfile: Effect.fn("UserRepo.updateUserProfile")(
-    (userId: number, oldImage: string | null | undefined, data: CreateUserProfileSchema, tx = db) =>
+    (userId: number, oldImage: string | null | undefined, data: CreateUserProfileSchema) =>
       Effect.tryPromise({
         try: async () => {
-          let finalImage: string | null | undefined = oldImage;
+          await db.transaction(async (tx) => {
+            let finalImage: string | null | undefined = oldImage;
 
-          switch (data.imageAction) {
-            case "keep":
-              finalImage = oldImage;
-              break;
-            case "remove":
-              finalImage = null;
-              if (oldImage) {
-                await tx.delete(files).where(eq(files.publicId, oldImage));
-              }
-              break;
-            case "update":
-              finalImage = data.image ?? null;
-              if (data.image) {
-                await tx
-                  .update(files)
-                  .set({ status: "success" })
-                  .where(eq(files.publicId, data.image));
-              }
-              if (oldImage && oldImage !== data.image) {
-                await tx.delete(files).where(eq(files.publicId, oldImage));
-              }
-              break;
-          }
+            switch (data.imageAction) {
+              case "keep":
+                finalImage = oldImage;
+                break;
+              case "remove":
+                finalImage = null;
+                if (oldImage) {
+                  await tx.delete(files).where(eq(files.publicId, oldImage));
+                }
+                break;
+              case "update":
+                finalImage = data.image ?? null;
+                if (data.image) {
+                  await tx
+                    .update(files)
+                    .set({ status: "success" })
+                    .where(eq(files.publicId, data.image));
+                }
+                if (oldImage && oldImage !== data.image) {
+                  await tx.delete(files).where(eq(files.publicId, oldImage));
+                }
+                break;
+            }
 
-          await tx
-            .update(user)
-            .set({
-              name: data.name,
-              image: finalImage,
-            })
-            .where(eq(user.id, userId));
+            await tx
+              .update(user)
+              .set({
+                name: data.name,
+                image: finalImage,
+              })
+              .where(eq(user.id, userId));
 
-          const profileData = {
-            idUser: userId,
-            noHp: data.noHp,
-            nik: data.nik,
-            namaBank: data.namaBank,
-            noRekening: data.noRekening,
-            pemilikRekening: data.pemilikRekening,
-            jalan: data.jalan,
-            idProvinsi: data.idProvinsi,
-            idKota: data.idKota,
-            idKecamatan: data.idKecamatan,
-            idKelurahan: data.idKelurahan,
-          };
+            const profileData = {
+              idUser: userId,
+              noHp: data.noHp,
+              nik: data.nik,
+              namaBank: data.namaBank,
+              noRekening: data.noRekening,
+              pemilikRekening: data.pemilikRekening,
+              jalan: data.jalan,
+              idProvinsi: data.idProvinsi,
+              idKota: data.idKota,
+              idKecamatan: data.idKecamatan,
+              idKelurahan: data.idKelurahan,
+            };
 
-          await tx
-            .insert(userProfile)
-            .values(profileData)
-            .onConflictDoUpdate({
-              target: userProfile.idUser,
-              set: profileData,
-            });
+            await tx
+              .insert(userProfile)
+              .values(profileData)
+              .onConflictDoUpdate({
+                target: userProfile.idUser,
+                set: profileData,
+              });
+          });
         },
         catch: error => new DatabaseError({ error }),
       }),
   ),
 
   unbanUserAndSetNoAnggota: Effect.fn("UserRepo.unbanUserAndSetNoAnggota")(
-    (userId: number, noAnggota: string, tx = db) =>
+    (userId: number, noAnggota: string, tx: DbTransaction | typeof db = db) =>
       Effect.tryPromise({
         try: async () => {
           await tx
@@ -168,42 +171,46 @@ export const UserRepo = {
       }),
   ),
 
-  assignPj: Effect.fn("UserRepo.assignPj")((kelompokId: number, userId: number, tx = db) =>
+  assignPj: Effect.fn("UserRepo.assignPj")((kelompokId: number, userId: number) =>
     Effect.tryPromise({
       try: async () => {
-        await tx
-          .update(user)
-          .set({ role: "pj" })
-          .where(eq(user.id, userId));
+        await db.transaction(async (tx) => {
+          await tx
+            .update(user)
+            .set({ role: "pj" })
+            .where(eq(user.id, userId));
 
-        await tx
-          .insert(kelompokPenanggungJawab)
-          .values({
-            kelompokId,
-            userId,
-          })
-          .onConflictDoNothing();
+          await tx
+            .insert(kelompokPenanggungJawab)
+            .values({
+              kelompokId,
+              userId,
+            })
+            .onConflictDoNothing();
+        });
       },
       catch: error => new DatabaseError({ error }),
     }),
   ),
 
-  revokePj: Effect.fn("UserRepo.revokePj")((kelompokId: number, userId: number, tx = db) =>
+  revokePj: Effect.fn("UserRepo.revokePj")((kelompokId: number, userId: number) =>
     Effect.tryPromise({
       try: async () => {
-        await tx
-          .update(user)
-          .set({ role: "user" })
-          .where(eq(user.id, userId));
+        await db.transaction(async (tx) => {
+          await tx
+            .update(user)
+            .set({ role: "user" })
+            .where(eq(user.id, userId));
 
-        await tx
-          .delete(kelompokPenanggungJawab)
-          .where(
-            and(
-              eq(kelompokPenanggungJawab.kelompokId, kelompokId),
-              eq(kelompokPenanggungJawab.userId, userId),
-            ),
-          );
+          await tx
+            .delete(kelompokPenanggungJawab)
+            .where(
+              and(
+                eq(kelompokPenanggungJawab.kelompokId, kelompokId),
+                eq(kelompokPenanggungJawab.userId, userId),
+              ),
+            );
+        });
       },
       catch: error => new DatabaseError({ error }),
     }),
