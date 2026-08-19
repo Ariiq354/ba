@@ -11,15 +11,11 @@ export const MasterSahamRepo = {
   create: Effect.fn("MasterSahamRepo.create")((userId: number, data: CreateSahamSchema) =>
     Effect.tryPromise({
       try: async () => {
-        const rows = await db
-          .insert(saham)
-          .values({
-            hargaNominal: data.hargaNominal,
-            hargaJual: data.hargaJual,
-            updatedBy: userId,
-          })
-          .returning();
-        return rows[0];
+        await db.insert(saham).values({
+          hargaNominal: data.hargaNominal,
+          hargaJual: data.hargaJual,
+          updatedBy: userId,
+        });
       },
       catch: error => new DatabaseError({ error }),
     }),
@@ -28,20 +24,19 @@ export const MasterSahamRepo = {
   getLatest: Effect.fn("MasterSahamRepo.getLatest")(() =>
     Effect.tryPromise({
       try: async () => {
-        const rows = await db
-          .select({
-            id: saham.id,
-            hargaNominal: saham.hargaNominal,
-            hargaJual: saham.hargaJual,
-            updatedBy: saham.updatedBy,
-            createdAt: saham.createdAt,
-            updatedByName: user.name,
-          })
-          .from(saham)
-          .leftJoin(user, eq(user.id, saham.updatedBy))
-          .orderBy(desc(saham.createdAt), desc(saham.id))
-          .limit(1);
-        return rows[0] ?? null;
+        return await db.query.saham.findFirst({
+          orderBy: {
+            createdAt: "desc",
+            id: "desc",
+          },
+          with: {
+            updater: {
+              columns: {
+                name: true,
+              },
+            },
+          },
+        });
       },
       catch: error => new DatabaseError({ error }),
     }),

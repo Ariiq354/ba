@@ -41,8 +41,10 @@ All server code under `server/modules/*` and `server/api/*` MUST adhere to the f
 
 - Implement functions with `Effect.fn("Repo.method")((args) => Effect.tryPromise({ try: async () => ..., catch: (error) => ... }))`.
 - Rely on database constraints instead of redundant pre-check SELECT queries. Use `isUniqueViolation(error)` (`~~/server/utils/pgcode`) to map unique violations (PG `23505`) to typed domain errors.
+- **Single-Record Queries**: Retrieve single records using Drizzle relational queries `db.query.<model>.findFirst(...)` / `tx.query.<model>.findFirst(...)` returning `T | undefined` directly (without redundant `?? null` conversions). Paging and existence checks (`if (!item) yield* new ItemNotFoundError(...)`) are handled exclusively by the Service Layer. _(Exception: queries requiring SQL-level pessimistic locking `.for("update")` continue using the standard query builder)._
+- **Create Operations**: Standard `create` operations return `void` (no `.returning()` or entity return value), unless explicitly required for chained foreign-key orchestration in multi-step transactions (e.g., retrieving a generated header ID to insert detail rows).
+- **Update & Delete Operations**: Use `.returning()` so the service layer can inspect `rows.length === 0` to yield `ItemNotFoundError` or `ItemsNotFoundError`.
 - Paginated queries must return `{ total, data }` using `db.$count(qb)` and `qb.limit(limit).offset(offset)`.
-- Use `.returning()` on `update` and `delete` operations.
 - Parameter `tx` (`tx = db`) is **ONLY** added to repo methods that actually participate in multi-step transactions. Standard query methods MUST NOT include `tx`.
 
 ```ts

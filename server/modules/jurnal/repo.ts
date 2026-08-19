@@ -35,17 +35,22 @@ export const JurnalRepo = {
             : dateObj.toISOString().substring(0, 10).replace(/-/g, "");
           const prefix = `TRX-${dateStr}-`;
 
-          const rows = await db
-            .select({ kodeTransaksi: jurnal.kodeTransaksi })
-            .from(jurnal)
-            .where(ilike(jurnal.kodeTransaksi, `${prefix}%`))
-            .orderBy(desc(jurnal.kodeTransaksi))
-            .limit(1);
+          const lastJurnal = await db.query.jurnal.findFirst({
+            where: {
+              kodeTransaksi: { ilike: `${prefix}%` },
+            },
+            orderBy: {
+              kodeTransaksi: "desc",
+            },
+            columns: {
+              kodeTransaksi: true,
+            },
+          });
 
-          if (!rows.length || !rows[0]?.kodeTransaksi) {
+          if (!lastJurnal?.kodeTransaksi) {
             return `${prefix}001`;
           }
-          const lastCode = rows[0].kodeTransaksi;
+          const lastCode = lastJurnal.kodeTransaksi;
           const parts = lastCode.split("-");
           const seqStr = parts[parts.length - 1];
           const seqNum = Number.parseInt(seqStr || "0", 10);
@@ -59,42 +64,63 @@ export const JurnalRepo = {
   findById: Effect.fn("JurnalRepo.findById")((id: number) =>
     Effect.tryPromise({
       try: async () => {
-        const headerRows = await db
-          .select({
-            header: jurnal,
+        const item = await db.query.jurnal.findFirst({
+          where: {
+            id,
+          },
+          with: {
             user: {
-              id: user.id,
-              name: user.name,
+              columns: {
+                id: true,
+                name: true,
+              },
             },
-          })
-          .from(jurnal)
-          .leftJoin(user, eq(jurnal.userId, user.id))
-          .where(eq(jurnal.id, id))
-          .limit(1);
+            details: {
+              with: {
+                akun: {
+                  columns: {
+                    kodeAkun: true,
+                    namaAkun: true,
+                  },
+                },
+              },
+            },
+          },
+        });
 
-        if (!headerRows.length || !headerRows[0]) {
-          return null;
+        if (!item) {
+          return undefined;
         }
-        const headerData = headerRows[0];
 
-        const details = await db
-          .select({
-            id: jurnalDetail.id,
-            jurnalId: jurnalDetail.jurnalId,
-            akunId: jurnalDetail.akunId,
-            kodeAkun: akun.kodeAkun,
-            namaAkun: akun.namaAkun,
-            debit: jurnalDetail.debit,
-            kredit: jurnalDetail.kredit,
-          })
-          .from(jurnalDetail)
-          .innerJoin(akun, eq(jurnalDetail.akunId, akun.id))
-          .where(eq(jurnalDetail.jurnalId, id));
+        const itemWithRelations = item as typeof item & {
+          user?: { id: number; name: string | null } | null;
+          details: {
+            id: number;
+            jurnalId: number;
+            akunId: number;
+            debit: number;
+            kredit: number;
+            akun: { kodeAkun: string; namaAkun: string };
+          }[];
+        };
 
         return {
-          ...headerData.header,
-          userName: headerData.user?.name ?? null,
-          details,
+          id: item.id,
+          kodeTransaksi: item.kodeTransaksi,
+          tanggalTransaksi: item.tanggalTransaksi,
+          keterangan: item.keterangan,
+          userId: item.userId,
+          createdAt: item.createdAt,
+          userName: itemWithRelations.user?.name ?? null,
+          details: itemWithRelations.details.map(d => ({
+            id: d.id,
+            jurnalId: d.jurnalId,
+            akunId: d.akunId,
+            kodeAkun: d.akun?.kodeAkun ?? "",
+            namaAkun: d.akun?.namaAkun ?? "",
+            debit: d.debit,
+            kredit: d.kredit,
+          })),
         };
       },
       catch: error => new DatabaseError({ error }),

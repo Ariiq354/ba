@@ -5,7 +5,6 @@ import { db } from "~~/server/database";
 import { akun } from "~~/server/database/schema/akun";
 import { user } from "~~/server/database/schema/auth";
 import { jurnal, jurnalDetail } from "~~/server/database/schema/jurnal";
-import { saham } from "~~/server/database/schema/master";
 import { mutasiSimpanan, saldoSimpanan } from "~~/server/database/schema/simpanan";
 import { DatabaseError } from "~~/server/utils/error";
 
@@ -43,12 +42,11 @@ export const SimpananRepo = {
   getLatestSahamPrice: Effect.fn("SimpananRepo.getLatestSahamPrice")(() =>
     Effect.tryPromise({
       try: async () => {
-        const rows = await db
-          .select()
-          .from(saham)
-          .orderBy(desc(saham.id))
-          .limit(1);
-        return rows[0] ?? null;
+        return await db.query.saham.findFirst({
+          orderBy: {
+            id: "desc",
+          },
+        });
       },
       catch: error => new DatabaseError({ error }),
     }),
@@ -57,12 +55,12 @@ export const SimpananRepo = {
   getSaldo: Effect.fn("SimpananRepo.getSaldo")((userId: number) =>
     Effect.tryPromise({
       try: async () => {
-        const [saldoRows, pendingRows] = await Promise.all([
-          db
-            .select()
-            .from(saldoSimpanan)
-            .where(eq(saldoSimpanan.userId, userId))
-            .limit(1),
+        const [saldoRow, pendingRows] = await Promise.all([
+          db.query.saldoSimpanan.findFirst({
+            where: {
+              userId,
+            },
+          }),
           db
             .select({
               totalPending: sql<number>`coalesce(sum(${mutasiSimpanan.nilaiTransaksi}), 0)::int`,
@@ -77,8 +75,8 @@ export const SimpananRepo = {
             ),
         ]);
 
-        const saldoTabungan = saldoRows[0]?.saldoTabungan ?? 0;
-        const saldoSaham = saldoRows[0]?.saldoSaham ?? 0;
+        const saldoTabungan = saldoRow?.saldoTabungan ?? 0;
+        const saldoSaham = saldoRow?.saldoSaham ?? 0;
         const sumPendingPenarikan = pendingRows[0]?.totalPending ?? 0;
         const effectiveSaldo = Math.max(0, saldoTabungan - sumPendingPenarikan);
 
@@ -102,17 +100,22 @@ export const SimpananRepo = {
           : dateObj.toISOString().substring(0, 10).replace(/-/g, "");
         const prefix = `STR-${dateStr}-`;
 
-        const rows = await db
-          .select({ kodeTransaksi: mutasiSimpanan.kodeTransaksi })
-          .from(mutasiSimpanan)
-          .where(ilike(mutasiSimpanan.kodeTransaksi, `${prefix}%`))
-          .orderBy(desc(mutasiSimpanan.kodeTransaksi))
-          .limit(1);
+        const lastMutasi = await db.query.mutasiSimpanan.findFirst({
+          where: {
+            kodeTransaksi: { ilike: `${prefix}%` },
+          },
+          orderBy: {
+            kodeTransaksi: "desc",
+          },
+          columns: {
+            kodeTransaksi: true,
+          },
+        });
 
-        if (!rows.length || !rows[0]?.kodeTransaksi) {
+        if (!lastMutasi?.kodeTransaksi) {
           return `${prefix}001`;
         }
-        const lastCode = rows[0].kodeTransaksi;
+        const lastCode = lastMutasi.kodeTransaksi;
         const parts = lastCode.split("-");
         const seqStr = parts[parts.length - 1];
         const seqNum = Number.parseInt(seqStr || "0", 10);
@@ -126,13 +129,13 @@ export const SimpananRepo = {
   ensureSaldoRecordTx: Effect.fn("SimpananRepo.ensureSaldoRecordTx")((userId: number, tx = db) =>
     Effect.tryPromise({
       try: async () => {
-        const rows = await tx
-          .select()
-          .from(saldoSimpanan)
-          .where(eq(saldoSimpanan.userId, userId))
-          .limit(1);
+        const row = await (tx as typeof db).query.saldoSimpanan.findFirst({
+          where: {
+            userId,
+          },
+        });
 
-        if (!rows.length) {
+        if (!row) {
           await tx.insert(saldoSimpanan).values({
             userId,
             saldoTabungan: 0,
@@ -161,12 +164,11 @@ export const SimpananRepo = {
   getMutasiById: Effect.fn("SimpananRepo.getMutasiById")((id: number) =>
     Effect.tryPromise({
       try: async () => {
-        const rows = await db
-          .select()
-          .from(mutasiSimpanan)
-          .where(eq(mutasiSimpanan.id, id))
-          .limit(1);
-        return rows[0] ?? null;
+        return await db.query.mutasiSimpanan.findFirst({
+          where: {
+            id,
+          },
+        });
       },
       catch: error => new DatabaseError({ error }),
     }),
@@ -277,15 +279,20 @@ export const SimpananRepo = {
       try: async () => {
         const dateStr = tanggalTransaksi.replace(/-/g, "");
         const prefix = `TRX-${dateStr}-`;
-        const lastJurnalRows = await tx
-          .select({ kodeTransaksi: jurnal.kodeTransaksi })
-          .from(jurnal)
-          .where(ilike(jurnal.kodeTransaksi, `${prefix}%`))
-          .orderBy(desc(jurnal.kodeTransaksi))
-          .limit(1);
+        const lastJurnal = await (tx as typeof db).query.jurnal.findFirst({
+          where: {
+            kodeTransaksi: { ilike: `${prefix}%` },
+          },
+          orderBy: {
+            kodeTransaksi: "desc",
+          },
+          columns: {
+            kodeTransaksi: true,
+          },
+        });
 
-        if (lastJurnalRows.length && lastJurnalRows[0]?.kodeTransaksi) {
-          const parts = lastJurnalRows[0].kodeTransaksi.split("-");
+        if (lastJurnal?.kodeTransaksi) {
+          const parts = lastJurnal.kodeTransaksi.split("-");
           const seqNum = Number.parseInt(parts[parts.length - 1] || "0", 10);
           return `${prefix}${String(seqNum + 1).padStart(3, "0")}`;
         }

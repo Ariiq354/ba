@@ -12,17 +12,17 @@ export const UserRepo = {
   findById: Effect.fn("UserRepo.findById")((userId: number, tx = db) =>
     Effect.tryPromise({
       try: async () => {
-        const rows = await tx
-          .select({
-            id: user.id,
-            role: user.role,
-            banned: user.banned,
-            idKelompok: user.idKelompok,
-          })
-          .from(user)
-          .where(eq(user.id, userId))
-          .limit(1);
-        return rows[0] ?? null;
+        return await (tx as typeof db).query.user.findFirst({
+          columns: {
+            id: true,
+            role: true,
+            banned: true,
+            idKelompok: true,
+          },
+          where: {
+            id: userId,
+          },
+        });
       },
       catch: error => new DatabaseError({ error }),
     }),
@@ -31,29 +31,46 @@ export const UserRepo = {
   getProfile: Effect.fn("UserRepo.getProfile")((userId: number) =>
     Effect.tryPromise({
       try: async () => {
-        const rows = await db
-          .select({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            image: user.image,
-            noAnggota: userProfile.noAnggota,
-            noHp: userProfile.noHp,
-            nik: userProfile.nik,
-            namaBank: userProfile.namaBank,
-            noRekening: userProfile.noRekening,
-            pemilikRekening: userProfile.pemilikRekening,
-            jalan: userProfile.jalan,
-            idProvinsi: userProfile.idProvinsi,
-            idKota: userProfile.idKota,
-            idKecamatan: userProfile.idKecamatan,
-            idKelurahan: userProfile.idKelurahan,
-          })
-          .from(user)
-          .leftJoin(userProfile, eq(userProfile.idUser, user.id))
-          .where(eq(user.id, userId))
-          .limit(1);
-        return rows[0] ?? null;
+        const [targetUser, profile] = await Promise.all([
+          db.query.user.findFirst({
+            where: {
+              id: userId,
+            },
+            columns: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            },
+          }),
+          db.query.userProfile.findFirst({
+            where: {
+              idUser: userId,
+            },
+          }),
+        ]);
+
+        if (!targetUser) {
+          return undefined;
+        }
+
+        return {
+          id: targetUser.id,
+          name: targetUser.name,
+          email: targetUser.email,
+          image: targetUser.image,
+          noAnggota: profile?.noAnggota ?? null,
+          noHp: profile?.noHp ?? null,
+          nik: profile?.nik ?? null,
+          namaBank: profile?.namaBank ?? null,
+          noRekening: profile?.noRekening ?? null,
+          pemilikRekening: profile?.pemilikRekening ?? null,
+          jalan: profile?.jalan ?? null,
+          idProvinsi: profile?.idProvinsi ?? null,
+          idKota: profile?.idKota ?? null,
+          idKecamatan: profile?.idKecamatan ?? null,
+          idKelurahan: profile?.idKelurahan ?? null,
+        };
       },
       catch: error => new DatabaseError({ error }),
     }),
