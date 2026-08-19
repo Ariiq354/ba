@@ -18,6 +18,14 @@ export default defineEventHandler(async (event) => {
             message: "Pengguna tidak ditemukan",
           }),
         ),
+      KelompokNotFoundError: () =>
+        Effect.fail(
+          createError({
+            statusCode: 404,
+            statusMessage: "Not Found",
+            message: "Kelompok pengguna tidak ditemukan",
+          }),
+        ),
       UserAlreadyVerifiedError: () =>
         Effect.fail(
           createError({

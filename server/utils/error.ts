@@ -11,3 +11,7 @@ export class ItemNotFoundError extends Data.TaggedError("ItemNotFoundError")<{
 export class ItemsNotFoundError extends Data.TaggedError("ItemsNotFoundError")<{
   readonly ids: number[];
 }> {}
+
+export class StorageError extends Data.TaggedError("StorageError")<{
+  readonly error: unknown;
+}> {}

@@ -1,10 +1,8 @@
 import type { UserWithId } from "~~/server/utils/auth";
 import type { CreateUserProfileSchema, GetUsersQuerySchema } from "./model";
 import { Effect } from "effect";
-import { db } from "~~/server/database";
-import { DatabaseError, ItemNotFoundError } from "~~/server/utils/error";
+import { ItemNotFoundError } from "~~/server/utils/error";
 import { deleteFile } from "~~/server/utils/files";
-import { generateNoAnggota } from "~~/server/utils/member";
 import {
   AdminCannotBePjError,
   ProfileImageRequiredError,
@@ -32,17 +30,12 @@ export const UserService = {
         || (data.imageAction === "update" && oldImage && oldImage !== newImage);
 
     if (shouldDeleteOldFile && oldImage) {
-      yield* Effect.tryPromise({
-        try: async () => {
-          try {
-            await deleteFile(oldImage);
-          }
-          catch (s3Err) {
-            console.error(`Gagal menghapus file lama dari S3 (${oldImage}):`, s3Err);
-          }
-        },
-        catch: () => undefined,
-      });
+      yield* deleteFile(oldImage).pipe(
+        Effect.catch((s3Err) => {
+          console.error(`Gagal menghapus file lama dari S3 (${oldImage}):`, s3Err.error);
+          return Effect.void;
+        }),
+      );
     }
 
     return { success: true };
@@ -66,16 +59,7 @@ export const UserService = {
       return yield* new UserAlreadyVerifiedError({ userId });
     }
 
-    const noAnggota = yield* Effect.tryPromise({
-      try: async () => {
-        return await db.transaction(async (tx) => {
-          const generatedNo = await generateNoAnggota(tx, targetUser.idKelompok);
-          await Effect.runPromise(UserRepo.unbanUserAndSetNoAnggota(userId, generatedNo, tx));
-          return generatedNo;
-        });
-      },
-      catch: error => new DatabaseError({ error }),
-    });
+    const noAnggota = yield* UserRepo.verifyAndAssignNoAnggota(userId, targetUser.idKelompok);
 
     return { noAnggota };
   }),

@@ -1,11 +1,10 @@
 import type { PresignedUploadInput } from "./model";
 import { Effect } from "effect";
-import { deleteFile, getUploadUrl } from "~~/server/utils/files";
+import { deleteFiles, getUploadUrl } from "~~/server/utils/files";
 import { UPLOAD_CONFIG } from "./config";
 import {
   FileTooLargeError,
   InvalidUploadDirectoryError,
-  StorageError,
   UnsupportedFileTypeError,
 } from "./errors";
 import { FilesRepo } from "./repo";
@@ -30,14 +29,12 @@ export const FilesService = {
       return yield* new UnsupportedFileTypeError();
     }
 
-    const uploadData = yield* Effect.tryPromise({
-      try: async () => {
-        return await getUploadUrl(input.dir, input.filename, input.filesize, input.fileType);
-      },
-      catch: error => new StorageError({ error }),
-    });
-
-    const { uploadUrl, key } = uploadData;
+    const { uploadUrl, key } = yield* getUploadUrl(
+      input.dir,
+      input.filename,
+      input.filesize,
+      input.fileType,
+    );
 
     yield* FilesRepo.createPendingFile({
       publicId: key,
@@ -59,21 +56,14 @@ export const FilesService = {
       return { deletedCount: 0 };
     }
 
-    const deletedPublicIds: string[] = [];
-    yield* Effect.tryPromise({
-      try: async () => {
-        for (const file of pendingFiles) {
-          try {
-            await deleteFile(file.publicId);
-          }
-          catch (err) {
-            console.error(`Failed to delete file from S3: ${file.publicId}`, err);
-          }
-          deletedPublicIds.push(file.publicId);
-        }
-      },
-      catch: error => new StorageError({ error }),
-    });
+    const deletedPublicIds = pendingFiles.map(file => file.publicId);
+
+    yield* deleteFiles(deletedPublicIds).pipe(
+      Effect.catch((err) => {
+        console.error("Failed to delete files from S3:", err.error);
+        return Effect.void;
+      }),
+    );
 
     yield* FilesRepo.deleteFilesByPublicIds(deletedPublicIds);
 

@@ -1,4 +1,3 @@
-import type { DbTransaction } from "~~/server/utils/member";
 import type { CreateUserProfileSchema, GetUsersQuerySchema } from "./model";
 import { and, desc, eq, ilike, isNull, or } from "drizzle-orm";
 import { Effect } from "effect";
@@ -8,6 +7,7 @@ import { files } from "~~/server/database/schema/files";
 import { kelompok, kelompokPenanggungJawab } from "~~/server/database/schema/kelompok";
 import { userProfile } from "~~/server/database/schema/users";
 import { DatabaseError } from "~~/server/utils/error";
+import { generateNoAnggota, KelompokNotFoundError } from "~~/server/utils/member";
 
 export const UserRepo = {
   findById: Effect.fn("UserRepo.findById")((userId: number) =>
@@ -143,31 +143,42 @@ export const UserRepo = {
       }),
   ),
 
-  unbanUserAndSetNoAnggota: Effect.fn("UserRepo.unbanUserAndSetNoAnggota")(
-    (userId: number, noAnggota: string, tx: DbTransaction | typeof db = db) =>
+  verifyAndAssignNoAnggota: Effect.fn("UserRepo.verifyAndAssignNoAnggota")(
+    (userId: number, idKelompok: number) =>
       Effect.tryPromise({
         try: async () => {
-          await tx
-            .update(user)
-            .set({
-              banned: false,
-              banReason: null,
-              banExpires: null,
-            })
-            .where(eq(user.id, userId));
+          return await db.transaction(async (tx) => {
+            const noAnggota = await Effect.runPromise(generateNoAnggota(idKelompok, tx));
 
-          await tx
-            .insert(userProfile)
-            .values({
-              idUser: userId,
-              noAnggota,
-            })
-            .onConflictDoUpdate({
-              target: userProfile.idUser,
-              set: { noAnggota },
-            });
+            await tx
+              .update(user)
+              .set({
+                banned: false,
+                banReason: null,
+                banExpires: null,
+              })
+              .where(eq(user.id, userId));
+
+            await tx
+              .insert(userProfile)
+              .values({
+                idUser: userId,
+                noAnggota,
+              })
+              .onConflictDoUpdate({
+                target: userProfile.idUser,
+                set: { noAnggota },
+              });
+
+            return noAnggota;
+          });
         },
-        catch: error => new DatabaseError({ error }),
+        catch: (error) => {
+          if (error instanceof KelompokNotFoundError) {
+            return error;
+          }
+          return new DatabaseError({ error });
+        },
       }),
   ),
 

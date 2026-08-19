@@ -15,16 +15,6 @@ export default defineEventHandler(async (event) => {
 
   return await FilesService.cleanupPendingFiles().pipe(
     Effect.catchTags({
-      StorageError: (err) => {
-        console.error("Storage error:", err.error);
-        return Effect.fail(
-          createError({
-            statusCode: 500,
-            statusMessage: "Storage Error",
-            message: "Gagal menghapus file dari storage",
-          }),
-        );
-      },
       DatabaseError: (err) => {
         console.error("Database error:", err.error);
         return Effect.fail(
