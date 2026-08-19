@@ -6,8 +6,6 @@ import { kelompok } from "../database/schema/kelompok";
 import { userProfile } from "../database/schema/users";
 import { DatabaseError } from "./error";
 
-export type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
 export class KelompokNotFoundError extends Data.TaggedError("KelompokNotFoundError")<{
   readonly idKelompok: number;
 }> {}
@@ -18,7 +16,7 @@ export class KelompokNotFoundError extends Data.TaggedError("KelompokNotFoundErr
  * The 4-digit sequence number resets monthly per kelompok.
  */
 export const generateNoAnggota = Effect.fn("MemberUtils.generateNoAnggota")(
-  (idKelompok: number, tx: DbTransaction | typeof db = db, date: Date = new Date()) =>
+  (idKelompok: number, tx = db, date = new Date()) =>
     Effect.gen(function* () {
       const targetKelompok = yield* Effect.tryPromise({
         try: async () => {

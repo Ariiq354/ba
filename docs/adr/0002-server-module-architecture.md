@@ -47,7 +47,7 @@ All server code under `server/modules/*` and `server/api/*` MUST adhere to the f
 - Paginated queries must return `{ total, data }` using `db.$count(qb)` and `qb.limit(limit).offset(offset)`.
 - **Transaction Placement & `tx` Parameter**:
   - **Single-Repo Transaction (Encapsulated in Repo)**: If an operation is contained within a single repository method (even if mutating multiple tables), the transaction `await db.transaction(async (tx) => { ... })` MUST be encapsulated inside the repository method. The method MUST NOT accept a `tx` parameter, allowing the Service Layer to simply call `yield* Repo.method(...)`.
-  - **Multi-Step Transaction (Managed in Service)**: Only when the Service Layer orchestrates multiple repository methods or database utilities (e.g., sequence generation + unban/insert) that must be atomic together, the transaction `db.transaction(async (tx) => ...)` is managed in the Service Layer. In this case, only the participating repository methods accept `tx: DbTransaction | typeof db = db`.
+  - **Multi-Step Transaction (Managed in Service)**: Only when the Service Layer orchestrates multiple repository methods or database utilities (e.g., sequence generation + unban/insert) that must be atomic together, the transaction `db.transaction(async (tx) => ...)` is managed in the Service Layer. In this case, only the participating repository methods accept default parameter `tx = db` (inferred without explicit type annotations).
   - Standard query methods (`findById`, `findAll`) MUST NOT include `tx`.
 
 ```ts
