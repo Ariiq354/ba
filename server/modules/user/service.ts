@@ -30,12 +30,17 @@ export const UserService = {
         || (data.imageAction === "update" && oldImage && oldImage !== newImage);
 
     if (shouldDeleteOldFile && oldImage) {
-      yield* deleteFile(oldImage).pipe(
-        Effect.catch((s3Err) => {
-          console.error(`Gagal menghapus file lama dari S3 (${oldImage}):`, s3Err.error);
-          return Effect.void;
-        }),
-      );
+      yield* Effect.tryPromise({
+        try: async () => {
+          try {
+            await deleteFile(oldImage);
+          }
+          catch (s3Err) {
+            console.error(`Gagal menghapus file lama dari S3 (${oldImage}):`, s3Err);
+          }
+        },
+        catch: () => undefined,
+      });
     }
 
     return { success: true };

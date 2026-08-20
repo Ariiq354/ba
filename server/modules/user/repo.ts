@@ -7,7 +7,8 @@ import { files } from "~~/server/database/schema/files";
 import { kelompok, kelompokPenanggungJawab } from "~~/server/database/schema/kelompok";
 import { userProfile } from "~~/server/database/schema/users";
 import { DatabaseError } from "~~/server/utils/error";
-import { generateNoAnggota, KelompokNotFoundError } from "~~/server/utils/member";
+import { generateNoAnggota, KelompokNotFoundException } from "~~/server/utils/member";
+import { KelompokNotFoundError } from "./errors";
 
 export const UserRepo = {
   findById: Effect.fn("UserRepo.findById")((userId: number) =>
@@ -148,7 +149,7 @@ export const UserRepo = {
       Effect.tryPromise({
         try: async () => {
           return await db.transaction(async (tx) => {
-            const noAnggota = await Effect.runPromise(generateNoAnggota(idKelompok, tx));
+            const noAnggota = await generateNoAnggota(tx, idKelompok);
 
             await tx
               .update(user)
@@ -174,8 +175,8 @@ export const UserRepo = {
           });
         },
         catch: (error) => {
-          if (error instanceof KelompokNotFoundError) {
-            return error;
+          if (error instanceof KelompokNotFoundException) {
+            return new KelompokNotFoundError({ idKelompok: error.idKelompok });
           }
           return new DatabaseError({ error });
         },

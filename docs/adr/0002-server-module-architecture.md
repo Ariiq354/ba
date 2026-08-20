@@ -174,6 +174,12 @@ export default defineEventHandler(async (event) => {
 });
 ```
 
+#### F. Server Utilities (`server/utils/*`)
+
+- All utility functions in `server/utils/*` (e.g. `files.ts`, `member.ts`, `guard.ts`, `validator.ts`, `pgcode.ts`) MUST remain plain TypeScript / async functions returning native Promises or values.
+- Utilities MUST NOT use `Effect.fn`, `Effect.gen`, or `Effect.tryPromise` internally.
+- Consuming Repository or Service layers in `server/modules/*` wrap utility calls using `Effect.tryPromise({ try: async () => ..., catch: (error) => ... })` to translate errors into typed domain TaggedErrors. Non-fatal / best-effort external operations (e.g. background file cleanup) use native `try/catch` within `Effect.tryPromise`.
+
 ### 3. Response Structure Standard
 
 All list/pagination endpoints return:

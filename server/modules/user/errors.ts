@@ -13,3 +13,7 @@ export class AdminCannotBePjError extends Data.TaggedError("AdminCannotBePjError
 }> {}
 
 export class ProfileImageRequiredError extends Data.TaggedError("ProfileImageRequiredError") {}
+
+export class KelompokNotFoundError extends Data.TaggedError("KelompokNotFoundError")<{
+  readonly idKelompok: number;
+}> {}

@@ -5,6 +5,7 @@ import { UPLOAD_CONFIG } from "./config";
 import {
   FileTooLargeError,
   InvalidUploadDirectoryError,
+  StorageError,
   UnsupportedFileTypeError,
 } from "./errors";
 import { FilesRepo } from "./repo";
@@ -29,12 +30,17 @@ export const FilesService = {
       return yield* new UnsupportedFileTypeError();
     }
 
-    const { uploadUrl, key } = yield* getUploadUrl(
-      input.dir,
-      input.filename,
-      input.filesize,
-      input.fileType,
-    );
+    const { uploadUrl, key } = yield* Effect.tryPromise({
+      try: async () => {
+        return await getUploadUrl(
+          input.dir,
+          input.filename,
+          input.filesize,
+          input.fileType,
+        );
+      },
+      catch: error => new StorageError({ error }),
+    });
 
     yield* FilesRepo.createPendingFile({
       publicId: key,
@@ -58,12 +64,17 @@ export const FilesService = {
 
     const deletedPublicIds = pendingFiles.map(file => file.publicId);
 
-    yield* deleteFiles(deletedPublicIds).pipe(
-      Effect.catch((err) => {
-        console.error("Failed to delete files from S3:", err.error);
-        return Effect.void;
-      }),
-    );
+    yield* Effect.tryPromise({
+      try: async () => {
+        try {
+          await deleteFiles(deletedPublicIds);
+        }
+        catch (err) {
+          console.error("Failed to delete files from S3:", err);
+        }
+      },
+      catch: () => undefined,
+    });
 
     yield* FilesRepo.deleteFilesByPublicIds(deletedPublicIds);
 
